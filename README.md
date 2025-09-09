@@ -1,9 +1,13 @@
 # FlaskLanChat - a mostly working lan chat with an extreme lack of secure features and operations. DONT USE IN SENSITIVE ENVIRONMENTS WITH OUT IMPLEMENTING HTTPS/CERTS. 
 FlaskLanChat - Send/receive  group messages, share files, and some other extra AI goodies with some elbow grease. 
+
+
 PYTHON 3.13.5 ENVIRONEMNT
+VOICE CHAT: SEPARATE LIVEKIT SERVER PROCESS, SEE BELOW. 
+
 INSTALL DEPENDENCIES (Example list given from working environment, probably dont need all of them but just in case...)
 ## TO RUN : server_v5.py launches server on port 6970 with a devchat.db for chat history. 
-## TO ACCESS : on client machine (even host machine!) enter the ip address of the server (typically http://192.168.x.x:7980) from the same network and a login/create account screen appears. Be mindful on the account creation - there is no verify password. If you goof your desired username, you have to delete the devchat.db and start over for now (its on a todo list, hold on!)
+## TO ACCESS : on client machine (even host machine!) enter the ip address of the server (typically http://192.168.x.x:6970) from the same network and a login/create account screen appears. Be mindful on the account creation - there is no verify password. If you goof your desired username, you have to delete the devchat.db and start over for now (its on a todo list, hold on!)
 ##########
 
 * I WILL NOT BE OFFERING ASSISTANCE ON THIS, THIS IS A HOBBY PROJECT, IF YOU WANT IT, CLONE IT, MODIFY IT - ITS YOURS. VIBE CODE MODIFY WITH AI IF YOU NEED TO!
