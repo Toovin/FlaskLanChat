@@ -1,0 +1,139 @@
+/* User Info - Changed to be in bottom left corner */
+.user-info {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    padding: 8px;
+    background-color: var(--bg-quaternary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+}
+
+.avatar {
+    position: relative;
+}
+
+.avatar img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--neon-glow); /* Fun glow */
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-quaternary);
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+}
+
+.status-dot.online {
+    background-color: var(--border); /* Was var(--green) */
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.username {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.status {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.user-controls {
+    display: flex;
+    gap: 16px;
+    color: var(--text-secondary);
+}
+
+.user-controls i:hover {
+    color: var(--text-primary);
+    transform: scale(1.003); /* Only increase by 0.003 on hover */
+}
+
+/* Member List - Added fun glow */
+.member-list {
+    width: 240px;
+    background-color: var(--bg-secondary);
+    padding: 16px 8px;
+    overflow-y: auto;
+    background-image: url('/static/images/channel-bg.jpg');
+    background-size: 240px auto;
+    background-repeat: repeat-y;
+    background-position: center top;
+    background-attachment: scroll;
+    background-blend-mode: normal; /* Changed from overlay to normal */
+    border-radius: 8px;
+}
+
+.member-header {
+    padding: 0 8px 16px;
+    color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.member-group {
+    margin-bottom: 24px;
+}
+
+.member-group-header {
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 0 8px 8px;
+}
+
+.member {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.member:hover {
+    background-color: var(--hover);
+    transform: scale(1.003); /* Only increase by 0.003 on hover */
+}
+
+.member-avatar {
+    position: relative;
+}
+
+.member-avatar img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--neon-glow); /* Fun glow */
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-name {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.member-status {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.member-status.typing {
+    color: #7289DA;  /* added 9-6-2025 1955pm */
+}

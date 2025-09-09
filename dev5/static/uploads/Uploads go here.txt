@@ -1,0 +1,2 @@
+Anything in this folder will be shared via the file share tab. 
+Also, if you want to share files for now, you MUST use the file share tab - its broken in the main chat file upload window. 

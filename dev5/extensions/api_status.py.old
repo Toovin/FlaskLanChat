@@ -1,0 +1,84 @@
+# api_status.py
+
+import requests
+import json
+import time
+from datetime import datetime
+
+def setup(command_processor):
+    """Setup function to register the !apistatus command."""
+    def api_status(args, sender, channel):
+        """
+        Command: !apistatus - Opens a modal showing the status of image generation and chat endpoints.
+        """
+        # Define endpoints
+        image_gen_url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
+        chat_bot_url = "http://127.0.0.1:1234/v1"
+
+        # Test image generation endpoint
+        try:
+            start_time = time.time()
+            response = requests.get(image_gen_url, timeout=10)
+            image_gen_status = {
+                "status": "success" if response.status_code == 200 else "failed",
+                "code": response.status_code,
+                "response_time": round(time.time() - start_time, 3),
+                "message": "Connected" if response.status_code == 200 else "No response"
+            }
+        except requests.exceptions.RequestException as e:
+            image_gen_status = {
+                "status": "failed",
+                "code": 0,
+                "response_time": 0,
+                "message": f"Error: {str(e)}"
+            }
+
+        # Test chat bot endpoint
+        try:
+            start_time = time.time()
+            response = requests.get(chat_bot_url, timeout=10)
+            chat_bot_status = {
+                "status": "success" if response.status_code == 200 else "failed",
+                "code": response.status_code,
+                "response_time": round(time.time() - start_time, 3),
+                "message": "Connected" if response.status_code == 200 else "No response"
+            }
+        except requests.exceptions.RequestException as e:
+            chat_bot_status = {
+                "status": "failed",
+                "code": 0,
+                "response_time": 0,
+                "message": f"Error: {str(e)}"
+            }
+
+        # Build modal data
+        modal_data = {
+            "title": "API Status Check",
+            "content": f"""
+            <h3>Image Generation (Stable Diffusion)</h3>
+            <p><strong>Status:</strong> {image_gen_status['status'].title()}</p>
+            <p><strong>Response Code:</strong> {image_gen_status['code']}</p>
+            <p><strong>Latency:</strong> {image_gen_status['response_time']}s</p>
+            <p><strong>Message:</strong> {image_gen_status['message']}</p>
+
+            <h3>Chat Bot (LM Studio)</h3>
+            <p><strong>Status:</strong> {chat_bot_status['status'].title()}</p>
+            <p><strong>Response Code:</strong> {chat_bot_status['code']}</p>
+            <p><strong>Latency:</strong> {chat_bot_status['response_time']}s</p>
+            <p><strong>Message:</strong> {chat_bot_status['message']}</p>
+            """,
+            "buttons": [
+                {
+                    "type": "button",
+                    "text": "OK",
+                    "action": "close_modal"
+                }
+            ]
+        }
+
+        return {
+            "open_modal": True,
+            "modal_data": modal_data
+        }
+
+    command_processor.register_command('apistatus', api_status)
