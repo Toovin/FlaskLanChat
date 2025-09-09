@@ -98,7 +98,7 @@ brave://flags/#unsafely-treat-insecure-origin-as-secure
 ENABLE Insecure-origins-treated-as-secure
 then enter the http://IP-ADDRESS:PORT of the livekit instance. 
 THE BROWSER SHOULD THEN ALLOW THE MICROPHONE/WEBCAM ACCESS PROMPT.
-This change ONLY effects
+This change ONLY effects the given entered website - all other websites will fallback to a secure pipeline. 
 ##########
 
 
