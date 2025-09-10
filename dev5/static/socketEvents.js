@@ -202,12 +202,6 @@ socket.on('channel_history', (data) => {
             updateReactions(msg.id, msg.reactions);
         }
     });
-    
-    // Load polls for the channel
-    if (!data.is_load_more) {
-        socket.emit('get_channel_polls', { channel: data.channel });
-    }
-    
     scrollMessagesToBottom(true);
     console.log('Messages rendered, checking visibility');
     const computedStyle = getComputedStyle(messagesContainer);

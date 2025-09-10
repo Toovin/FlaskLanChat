@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="/static/css/modals.css">
     <link rel="stylesheet" href="/static/css/members.css">
     <link rel="stylesheet" href="/static/css/reactions.css">
-    <link rel="stylesheet" href="/static/css/polls.css">
     <link rel="stylesheet" href="/static/css/effects.css">
 </head>
 <body>
@@ -99,36 +98,6 @@
         </div>
     </div>
 
-    <div id="poll-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2>Create Poll</h2>
-            <form id="poll-form" action="javascript:void(0)">
-                <div class="form-group">
-                    <label for="poll-question-input">Question</label>
-                    <input type="text" id="poll-question-input" name="question" placeholder="What's your question?" required>
-                </div>
-                <div class="form-group">
-                    <label>Options</label>
-                    <div id="poll-options-container">
-                        <div class="poll-option-input">
-                            <input type="text" placeholder="Option 1" required>
-                            <button type="button" class="remove-option-btn" style="display: none;">&times;</button>
-                        </div>
-                        <div class="poll-option-input">
-                            <input type="text" placeholder="Option 2" required>
-                            <button type="button" class="remove-option-btn" style="display: none;">&times;</button>
-                        </div>
-                    </div>
-                    <button type="button" id="add-option-btn">+ Add Option</button>
-                </div>
-                <div class="form-actions">
-                    <button type="submit">Create Poll</button>
-                    <button type="button" class="cancel-button">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div id="app-container" class="app-container">
         <div class="sidebar">
             <div class="sidebar-header">
@@ -179,7 +148,6 @@
                             <input type="file" id="chat-file-upload-input" multiple style="display: none;" accept="image/png,image/webp,image/jpeg,image/gif,application/pdf,.doc,.docx,text/plain,.md,video/mp4,video/webm,video/avi,video/quicktime">
                             <button class="action-btn send-image-btn"><i class="fas fa-paper-plane"></i></button>
                             <button class="action-btn upload-btn"><i class="fas fa-upload"></i></button>
-                            <button class="action-btn poll-btn"><i class="fas fa-poll"></i> Poll</button>
                             <button class="action-btn voice-btn"><i class="fas fa-microphone"></i> Join Voice</button>
                             <label class="auto-scroll-label">
                                 <input type="checkbox" id="auto-scroll-checkbox"> Auto-Scroll
@@ -227,7 +195,6 @@
     <script src="/static/messageUtils.js"></script>
     <script src="/static/chatInput.js"></script>
     <script src="/static/file_share.js"></script>
-    <script src="/static/polls.js"></script>
     <script src="/static/effects.js"></script>
     <script src="/static/lib/livekit-client.umd.js.map"></script>
 </body>
