@@ -93,6 +93,31 @@ def init_db():
         c.execute(
             '''CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_reaction ON reactions (message_id, user_uuid, emoji)''')
 
+        print("Creating polls table if not exists")
+        c.execute('''CREATE TABLE IF NOT EXISTS polls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel TEXT NOT NULL,
+            creator_uuid TEXT NOT NULL,
+            question TEXT NOT NULL,
+            options TEXT NOT NULL, -- JSON array of options
+            created_at TEXT NOT NULL,
+            expires_at TEXT,
+            is_active INTEGER DEFAULT 1,
+            FOREIGN KEY (creator_uuid) REFERENCES users(uuid)
+        )''')
+
+        print("Creating poll_votes table if not exists")
+        c.execute('''CREATE TABLE IF NOT EXISTS poll_votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            poll_id INTEGER NOT NULL,
+            user_uuid TEXT NOT NULL,
+            option_index INTEGER NOT NULL,
+            voted_at TEXT NOT NULL,
+            FOREIGN KEY (poll_id) REFERENCES polls(id),
+            FOREIGN KEY (user_uuid) REFERENCES users(uuid),
+            UNIQUE(poll_id, user_uuid)
+        )''')
+
         print("Inserting default 'general' channel")
         c.execute("INSERT OR IGNORE INTO channels (name) VALUES ('general')")
 
@@ -270,3 +295,125 @@ def get_reactions(message_id):
 def get_standard_timestamp():
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return timestamp
+
+
+def create_poll(channel, creator_uuid, question, options, expires_at=None):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        import json
+        options_json = json.dumps(options)
+        created_at = get_standard_timestamp()
+        c.execute("INSERT INTO polls (channel, creator_uuid, question, options, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+                  (channel, creator_uuid, question, options_json, created_at, expires_at))
+        poll_id = c.lastrowid
+        conn.commit()
+        print(f"Created poll ID {poll_id} in channel {channel}")
+        return poll_id
+    except Exception as e:
+        print(f"Error creating poll: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
+def get_poll(poll_id):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        c.execute("SELECT id, channel, creator_uuid, question, options, created_at, expires_at, is_active FROM polls WHERE id = ?", (poll_id,))
+        row = c.fetchone()
+        if not row:
+            return None
+        import json
+        poll = {
+            'id': row[0],
+            'channel': row[1],
+            'creator_uuid': row[2],
+            'question': row[3],
+            'options': json.loads(row[4]),
+            'created_at': row[5],
+            'expires_at': row[6],
+            'is_active': row[7],
+            'votes': get_poll_votes(poll_id)
+        }
+        return poll
+    except Exception as e:
+        print(f"Error retrieving poll {poll_id}: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
+def get_channel_polls(channel):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        c.execute("SELECT id, channel, creator_uuid, question, options, created_at, expires_at, is_active FROM polls WHERE channel = ? AND is_active = 1 ORDER BY created_at DESC", (channel,))
+        polls = []
+        import json
+        for row in c.fetchall():
+            poll = {
+                'id': row[0],
+                'channel': row[1],
+                'creator_uuid': row[2],
+                'question': row[3],
+                'options': json.loads(row[4]),
+                'created_at': row[5],
+                'expires_at': row[6],
+                'is_active': row[7],
+                'votes': get_poll_votes(row[0])
+            }
+            polls.append(poll)
+        return polls
+    except Exception as e:
+        print(f"Error retrieving polls for channel {channel}: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
+def vote_on_poll(poll_id, user_uuid, option_index):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        voted_at = get_standard_timestamp()
+        c.execute("INSERT OR REPLACE INTO poll_votes (poll_id, user_uuid, option_index, voted_at) VALUES (?, ?, ?, ?)",
+                  (poll_id, user_uuid, option_index, voted_at))
+        conn.commit()
+        print(f"User {user_uuid} voted on poll {poll_id}, option {option_index}")
+        return True
+    except Exception as e:
+        print(f"Error voting on poll {poll_id}: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
+def get_poll_votes(poll_id):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        c.execute("SELECT user_uuid, option_index FROM poll_votes WHERE poll_id = ?", (poll_id,))
+        votes = [{'user_uuid': row[0], 'option_index': row[1]} for row in c.fetchall()]
+        return votes
+    except Exception as e:
+        print(f"Error retrieving votes for poll {poll_id}: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
+def close_poll(poll_id):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        c.execute("UPDATE polls SET is_active = 0 WHERE id = ?", (poll_id,))
+        conn.commit()
+        print(f"Closed poll {poll_id}")
+        return True
+    except Exception as e:
+        print(f"Error closing poll {poll_id}: {str(e)}")
+        raise
+    finally:
+        conn.close()
