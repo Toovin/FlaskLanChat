@@ -130,6 +130,23 @@
         </div>
     </div>
 
+    <div id="create-channel-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Create Channel</h2>
+            <form id="create-channel-form" action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="channel-name-input">Channel Name</label>
+                    <input type="text" id="channel-name-input" name="name" placeholder="Enter channel name" required>
+                    <small>Channel names must be lowercase and contain no spaces</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Create Channel</button>
+                    <button type="button" class="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="user-settings-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <button class="close-modal" onclick="closeUserSettings()">&times;</button>
@@ -260,9 +277,16 @@
                 </div>
             </div>
             <div class="channel-category">
-                <h3>TEXT CHANNELS</h3>
-                <div class="channel active">
-                    <i class="fas fa-hashtag"></i><span>general</span>
+                <div class="category-header">
+                    <h3>TEXT CHANNELS</h3>
+                    <button class="add-channel-btn" onclick="showCreateChannelModal()" title="Create Channel">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="channels-list">
+                    <div class="channel active" data-channel="general">
+                        <i class="fas fa-hashtag"></i><span>general</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -348,6 +372,7 @@
     <script src="/static/polls.js"></script>
     <script src="/static/effects.js"></script>
     <script src="/static/userSettings.js"></script>
+    <script src="/static/channels.js"></script>
     <script src="/static/lib/livekit-client.umd.js.map"></script>
 </body>
 </html>

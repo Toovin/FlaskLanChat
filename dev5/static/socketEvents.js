@@ -154,33 +154,18 @@ socket.on('error', (data) => {
 });
 
 socket.on('update_channels', (data) => {
-    const channelList = document.querySelector('.channel-category');
-    if (channelList) {
-        const textChannels = document.querySelectorAll('.channel');
-        textChannels.forEach(c => c.remove());
-        data.channels.forEach(channel => {
-            const channelDiv = document.createElement('div');
-            channelDiv.className = `channel ${channel === currentChannel ? 'active' : ''}`;
-            channelDiv.innerHTML = `<i class="fas fa-hashtag"></i><span>${channel}</span>`;
-            channelDiv.addEventListener('click', () => {
-                document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
-                channelDiv.classList.add('active');
-                currentChannel = channel;
-                socket.emit('join_channel', { channel });
-                updateChannelHeader(channel);
-                setActiveTab('channel');
-                // Disconnect from voice room if switching channels
-                if (window.currentVoiceRoom) {
-                    window.currentVoiceRoom.disconnect();
-                    const voiceButton = document.querySelector('.voice-btn');
-                    if (voiceButton) {
-                        voiceButton.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
-                    }
-                    window.currentVoiceRoom = null;
-                }
-            });
-            channelList.appendChild(channelDiv);
-        });
+    if (data.channels && typeof renderChannelList === 'function') {
+        renderChannelList(data.channels);
+        
+        // Disconnect from voice room if current channel was deleted
+        if (!data.channels.includes(currentChannel) && window.currentVoiceRoom) {
+            window.currentVoiceRoom.disconnect();
+            const voiceButton = document.querySelector('.voice-btn');
+            if (voiceButton) {
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
+            }
+            window.currentVoiceRoom = null;
+        }
     }
 });
 

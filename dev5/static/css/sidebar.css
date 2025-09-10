@@ -86,3 +86,109 @@
     color: var(--text-secondary, #e6f7ff);
     font-size: 12px;
 }
+
+.channel-category {
+    padding: 16px 8px 0;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    margin-bottom: 8px;
+}
+
+.category-header h3 {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0;
+}
+
+.add-channel-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.add-channel-btn:hover {
+    background-color: var(--hover);
+    color: var(--text-primary);
+}
+
+.channel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    margin: 1px 0;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.channel:hover {
+    background-color: var(--hover);
+    color: var(--text-primary);
+}
+
+.channel.active {
+    background-color: var(--active);
+    color: var(--text-primary);
+}
+
+.channel i {
+    font-size: 14px;
+    margin-right: 6px;
+}
+
+.channel span {
+    flex: 1;
+    font-size: 14px;
+}
+
+.delete-channel-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 12px;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.channel:hover .delete-channel-btn {
+    opacity: 1;
+}
+
+.delete-channel-btn:hover {
+    background-color: var(--error);
+    color: white;
+}
+
+.settings-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.settings-btn:hover {
+    background-color: var(--hover);
+    color: var(--text-primary);
+}
