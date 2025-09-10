@@ -1,7 +1,7 @@
 from flask_socketio import emit, join_room, leave_room
 from werkzeug.security import check_password_hash
 from flask import request
-from lc_database import save_user, get_user_by_username, update_user_avatar, load_messages, add_reaction, remove_reaction, get_reactions, get_standard_timestamp, create_poll, get_poll, get_channel_polls, vote_on_poll, close_poll
+from lc_database import save_user, get_user_by_username, update_user_avatar, update_user_settings, get_user_settings, load_messages, add_reaction, remove_reaction, get_reactions, get_standard_timestamp, create_poll, get_poll, get_channel_polls, vote_on_poll, close_poll
 import sqlite3
 import uuid
 import threading
@@ -106,6 +106,43 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
         socketio.emit('update_users', {
             'users': [users_db[uuid] for uuid in users.values() if uuid in users_db]
         })
+
+    @socketio.on('get_user_settings')
+    def handle_get_user_settings():
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        try:
+            settings = get_user_settings(user_uuid)
+            if settings:
+                emit('user_settings', settings)
+            else:
+                emit('error', {'msg': 'Settings not found'})
+        except Exception as e:
+            emit('error', {'msg': f'Failed to get settings: {str(e)}'})
+
+    @socketio.on('update_user_settings')
+    def handle_update_user_settings(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        try:
+            settings = data.get('settings', {})
+            update_user_settings(user_uuid, settings)
+            
+            # Update in-memory user data
+            for key, value in settings.items():
+                if key in users_db[user_uuid]:
+                    users_db[user_uuid][key] = value
+            
+            emit('settings_updated', {'success': True})
+            socketio.emit('update_users', {
+                'users': [users_db[uuid] for uuid in users.values() if uuid in users_db]
+            })
+        except Exception as e:
+            emit('error', {'msg': f'Failed to update settings: {str(e)}'})
 
     @socketio.on('start_typing')
     def handle_start_typing(data):

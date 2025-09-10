@@ -61,8 +61,39 @@ def init_db():
             uuid TEXT PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            avatar_url TEXT
+            avatar_url TEXT,
+            display_name TEXT,
+            status TEXT DEFAULT 'online',
+            custom_status TEXT,
+            theme TEXT DEFAULT 'darker',
+            compact_mode INTEGER DEFAULT 0,
+            show_timestamps INTEGER DEFAULT 1,
+            allow_dms INTEGER DEFAULT 1,
+            show_online_status INTEGER DEFAULT 1,
+            typing_indicators INTEGER DEFAULT 1
         )''')
+
+        # Check if new columns exist and add them if they don't
+        c.execute("PRAGMA table_info(users)")
+        columns = [col[1] for col in c.fetchall()]
+        
+        new_columns = [
+            ('display_name', 'TEXT'),
+            ('status', 'TEXT DEFAULT "online"'),
+            ('custom_status', 'TEXT'),
+            ('theme', 'TEXT DEFAULT "darker"'),
+            ('compact_mode', 'INTEGER DEFAULT 0'),
+            ('show_timestamps', 'INTEGER DEFAULT 1'),
+            ('allow_dms', 'INTEGER DEFAULT 1'),
+            ('show_online_status', 'INTEGER DEFAULT 1'),
+            ('typing_indicators', 'INTEGER DEFAULT 1')
+        ]
+        
+        for col_name, col_type in new_columns:
+            if col_name not in columns:
+                print(f"Adding {col_name} column to users table")
+                c.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+                conn.commit()
 
         print("Creating channels table if not exists")
         c.execute('''CREATE TABLE IF NOT EXISTS channels (
@@ -135,12 +166,23 @@ def load_users():
     try:
         conn = sqlite3.connect('devchat.db')
         c = conn.cursor()
-        c.execute("SELECT uuid, username, password_hash, avatar_url FROM users")
+        c.execute("""SELECT uuid, username, password_hash, avatar_url, display_name, status, 
+                     custom_status, theme, compact_mode, show_timestamps, allow_dms, 
+                     show_online_status, typing_indicators FROM users""")
         for row in c.fetchall():
             users_db[row[0]] = {
                 'username': row[1],
                 'password_hash': row[2],
-                'avatar_url': row[3]
+                'avatar_url': row[3],
+                'display_name': row[4],
+                'status': row[5] or 'online',
+                'custom_status': row[6],
+                'theme': row[7] or 'darker',
+                'compact_mode': bool(row[8]),
+                'show_timestamps': bool(row[9]) if row[9] is not None else True,
+                'allow_dms': bool(row[10]) if row[10] is not None else True,
+                'show_online_status': bool(row[11]) if row[11] is not None else True,
+                'typing_indicators': bool(row[12]) if row[12] is not None else True
             }
         conn.close()
         print(f"Loaded {len(users_db)} users from database")
@@ -185,11 +227,76 @@ def update_user_avatar(uuid, avatar_url):
         conn.close()
 
 
+def update_user_settings(uuid, settings):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        
+        # Build dynamic query based on provided settings
+        updates = []
+        values = []
+        
+        allowed_fields = [
+            'display_name', 'status', 'custom_status', 'theme',
+            'compact_mode', 'show_timestamps', 'allow_dms', 
+            'show_online_status', 'typing_indicators', 'avatar_url'
+        ]
+        
+        for field, value in settings.items():
+            if field in allowed_fields:
+                updates.append(f"{field} = ?")
+                values.append(value)
+        
+        if updates:
+            values.append(uuid)  # Add uuid for WHERE clause
+            query = f"UPDATE users SET {', '.join(updates)} WHERE uuid = ?"
+            c.execute(query, values)
+            conn.commit()
+            print(f"Updated settings for user UUID: {uuid}")
+        
+    except Exception as e:
+        print(f"Error updating settings for user UUID {uuid}: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
+def get_user_settings(uuid):
+    try:
+        conn = sqlite3.connect('devchat.db')
+        c = conn.cursor()
+        c.execute("""SELECT display_name, status, custom_status, theme, compact_mode, 
+                     show_timestamps, allow_dms, show_online_status, typing_indicators, avatar_url 
+                     FROM users WHERE uuid = ?""", (uuid,))
+        row = c.fetchone()
+        if row:
+            return {
+                'display_name': row[0],
+                'status': row[1] or 'online',
+                'custom_status': row[2],
+                'theme': row[3] or 'darker',
+                'compact_mode': bool(row[4]),
+                'show_timestamps': bool(row[5]) if row[5] is not None else True,
+                'allow_dms': bool(row[6]) if row[6] is not None else True,
+                'show_online_status': bool(row[7]) if row[7] is not None else True,
+                'typing_indicators': bool(row[8]) if row[8] is not None else True,
+                'avatar_url': row[9]
+            }
+        return None
+    except Exception as e:
+        print(f"Error retrieving settings for user UUID {uuid}: {str(e)}")
+        raise
+    finally:
+        conn.close()
+
+
 def get_user_by_username(username):
     try:
         conn = sqlite3.connect('devchat.db')
         c = conn.cursor()
-        c.execute("SELECT uuid, username, password_hash, avatar_url FROM users WHERE username = ?", (username,))
+        c.execute("""SELECT uuid, username, password_hash, avatar_url, display_name, status, 
+                     custom_status, theme, compact_mode, show_timestamps, allow_dms, 
+                     show_online_status, typing_indicators FROM users WHERE username = ?""", (username,))
         row = c.fetchone()
         conn.close()
         if row:
@@ -198,7 +305,16 @@ def get_user_by_username(username):
                 'uuid': row[0],
                 'username': row[1],
                 'password_hash': row[2],
-                'avatar_url': row[3]
+                'avatar_url': row[3],
+                'display_name': row[4],
+                'status': row[5] or 'online',
+                'custom_status': row[6],
+                'theme': row[7] or 'darker',
+                'compact_mode': bool(row[8]),
+                'show_timestamps': bool(row[9]) if row[9] is not None else True,
+                'allow_dms': bool(row[10]) if row[10] is not None else True,
+                'show_online_status': bool(row[11]) if row[11] is not None else True,
+                'typing_indicators': bool(row[12]) if row[12] is not None else True
             }
         print(f"User not found: {username}")
         return None
