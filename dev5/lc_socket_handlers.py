@@ -1,7 +1,7 @@
 from flask_socketio import emit, join_room, leave_room
 from werkzeug.security import check_password_hash
 from flask import request
-from lc_database import save_user, get_user_by_username, update_user_avatar, load_messages, add_reaction, remove_reaction, get_reactions, get_standard_timestamp
+from lc_database import save_user, get_user_by_username, update_user_avatar, load_messages, add_reaction, remove_reaction, get_reactions, get_standard_timestamp, create_poll, get_poll, get_channel_polls, vote_on_poll, close_poll
 import sqlite3
 import uuid
 import threading
@@ -387,6 +387,133 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
             }, room=channel)
         except Exception as e:
             emit('error', {'msg': f'Failed to remove reaction: {str(e)}'})
+
+    @socketio.on('create_poll')
+    def handle_create_poll(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        
+        channel = data.get('channel', '').strip()
+        question = data.get('question', '').strip()
+        options = data.get('options', [])
+        expires_at = data.get('expires_at')
+        
+        if not channel or not question or len(options) < 2:
+            emit('error', {'msg': 'Invalid poll data: need channel, question, and at least 2 options'})
+            return
+        
+        if len(options) > 10:
+            emit('error', {'msg': 'Maximum 10 options allowed'})
+            return
+        
+        try:
+            poll_id = create_poll(channel, user_uuid, question, options, expires_at)
+            poll_data = get_poll(poll_id)
+            
+            socketio.emit('poll_created', {
+                'poll': poll_data,
+                'channel': channel
+            }, room=channel)
+            
+            print(f"Poll {poll_id} created by {users_db[user_uuid]['username']} in {channel}")
+        except Exception as e:
+            emit('error', {'msg': f'Failed to create poll: {str(e)}'})
+
+    @socketio.on('vote_poll')
+    def handle_vote_poll(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        
+        poll_id = data.get('poll_id')
+        option_index = data.get('option_index')
+        channel = data.get('channel')
+        
+        if poll_id is None or option_index is None or not channel:
+            emit('error', {'msg': 'Invalid vote data'})
+            return
+        
+        try:
+            poll = get_poll(poll_id)
+            if not poll or not poll['is_active']:
+                emit('error', {'msg': 'Poll not found or not active'})
+                return
+            
+            if option_index < 0 or option_index >= len(poll['options']):
+                emit('error', {'msg': 'Invalid option index'})
+                return
+            
+            vote_on_poll(poll_id, user_uuid, option_index)
+            updated_poll = get_poll(poll_id)
+            
+            socketio.emit('poll_updated', {
+                'poll': updated_poll,
+                'channel': channel
+            }, room=channel)
+            
+            print(f"User {users_db[user_uuid]['username']} voted on poll {poll_id}")
+        except Exception as e:
+            emit('error', {'msg': f'Failed to vote: {str(e)}'})
+
+    @socketio.on('get_channel_polls')
+    def handle_get_channel_polls(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        
+        channel = data.get('channel', '').strip()
+        if not channel:
+            emit('error', {'msg': 'Channel required'})
+            return
+        
+        try:
+            polls = get_channel_polls(channel)
+            emit('channel_polls', {
+                'polls': polls,
+                'channel': channel
+            })
+        except Exception as e:
+            emit('error', {'msg': f'Failed to get polls: {str(e)}'})
+
+    @socketio.on('close_poll')
+    def handle_close_poll(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        
+        poll_id = data.get('poll_id')
+        channel = data.get('channel')
+        
+        if not poll_id or not channel:
+            emit('error', {'msg': 'Poll ID and channel required'})
+            return
+        
+        try:
+            poll = get_poll(poll_id)
+            if not poll:
+                emit('error', {'msg': 'Poll not found'})
+                return
+            
+            if poll['creator_uuid'] != user_uuid:
+                emit('error', {'msg': 'Only poll creator can close the poll'})
+                return
+            
+            close_poll(poll_id)
+            updated_poll = get_poll(poll_id)
+            
+            socketio.emit('poll_updated', {
+                'poll': updated_poll,
+                'channel': channel
+            }, room=channel)
+            
+            print(f"Poll {poll_id} closed by {users_db[user_uuid]['username']}")
+        except Exception as e:
+            emit('error', {'msg': f'Failed to close poll: {str(e)}'})
 
     @socketio.on('disconnect')
     def handle_disconnect():
