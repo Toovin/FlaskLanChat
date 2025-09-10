@@ -1,0 +1,12 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Database files
+*.db
+
+# Avatar uploads
+dev5/static/avatars/*.jpg
+dev5/static/avatars/*.png
+dev5/static/avatars/*.gif
