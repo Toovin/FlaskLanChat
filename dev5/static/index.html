@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAN Chat</title>
+    <title>DEV Chat</title>
     <link rel="stylesheet" href="/static/lib/all.min.css">
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/login.css">
@@ -13,15 +13,16 @@
     <link rel="stylesheet" href="/static/css/modals.css">
     <link rel="stylesheet" href="/static/css/members.css">
     <link rel="stylesheet" href="/static/css/reactions.css">
+    <link rel="stylesheet" href="/static/css/polls.css">
     <link rel="stylesheet" href="/static/css/effects.css">
+    <link rel="stylesheet" href="/static/css/user-settings.css">
 </head>
 <body>
     <div id="error-message" style="display: none; position: fixed; top: 10px; right: 10px; background: #dc3545; color: white; padding: 10px; border-radius: 4px; z-index: 1000;"></div>
 
-    <div id="login-modal" class="modal">
-        <div class="login-background"></div>
+    <div id="login-modal" class="modal-overlay">
         <div class="modal-content">
-            <h2>Welcome to LAN Chat</h2>
+            <h2>Welcome to DEV Chat</h2>
             <p>Sign in or create an account</p>
             <form id="login-form">
                 <div class="form-group">
@@ -46,7 +47,7 @@
 
     <div id="loading-spinner" class="spinner">Loading...</div>
 
-    <div id="image-gen-modal" class="modal" style="display: none;">
+    <div id="image-gen-modal" class="modal"> <!--style="display: none;">-->
         <div class="modal-content">
             <h2>Generate Image</h2>
             <form id="image-gen-form" action="javascript:void(0)">
@@ -98,6 +99,135 @@
         </div>
     </div>
 
+    <div id="create-channel-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Create Channel</h2>
+            <form id="create-channel-form" action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="channel-name-input">Channel Name</label>
+                    <input type="text" id="channel-name-input" name="name" placeholder="Enter channel name" required>
+                    <small>Channel names must be lowercase and contain no spaces</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Create Channel</button>
+                    <button type="button" class="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="user-settings-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeUserSettings()">&times;</button>
+            <h2>User Settings</h2>
+
+            <div class="settings-tabs">
+                <div class="settings-tab active" data-tab="profile">Profile</div>
+                <div class="settings-tab" data-tab="appearance">Appearance</div>
+                <div class="settings-tab" data-tab="privacy">Privacy</div>
+            </div>
+
+            <div id="settings-tab-profile" class="settings-tab-content">
+                <div class="form-group">
+                    <label>Current Avatar</label>
+                    <div class="avatar-preview">
+                        <img id="settings-current-avatar" src="/static/avatars/smile_1.png" alt="Current Avatar">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="settings-avatar-input">Upload New Avatar</label>
+                    <input type="file" id="settings-avatar-input" accept="image/*">
+                    <small>Recommended: Square image, max 5MB</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="settings-display-name">Display Name</label>
+                    <input type="text" id="settings-display-name" placeholder="Your display name">
+                    <small>This is how others see your name</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="settings-status">Status</label>
+                    <select id="settings-status">
+                        <option value="online">Online</option>
+                        <option value="away">Away</option>
+                        <option value="busy">Do Not Disturb</option>
+                        <option value="invisible">Invisible</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="settings-custom-status">Custom Status</label>
+                    <input type="text" id="settings-custom-status" placeholder="What's happening?" maxlength="100">
+                </div>
+            </div>
+
+            <div id="settings-tab-appearance" class="settings-tab-content" style="display: none;">
+                <div class="form-group">
+                    <label>Theme</label>
+                    <div class="theme-options">
+                        <div class="theme-option" data-theme="dark">
+                            <div class="theme-preview dark-theme"></div>
+                            <span>Dark</span>
+                        </div>
+                        <div class="theme-option active" data-theme="darker">
+                            <div class="theme-preview darker-theme"></div>
+                            <span>Darker</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-compact-mode">
+                        Compact Mode
+                    </label>
+                    <small>Show more messages on screen</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-show-timestamps">
+                        Show Timestamps
+                    </label>
+                    <small>Display message timestamps</small>
+                </div>
+            </div>
+
+            <div id="settings-tab-privacy" class="settings-tab-content" style="display: none;">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-allow-dms">
+                        Allow Direct Messages
+                    </label>
+                    <small>Let other users send you private messages</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-show-online-status">
+                        Show Online Status
+                    </label>
+                    <small>Let others see when you're online</small>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-typing-indicators">
+                        Send Typing Indicators
+                    </label>
+                    <small>Let others know when you're typing</small>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button type="button" class="save-settings-btn">Save Changes</button>
+                <button type="button" class="cancel-button" onclick="closeUserSettings()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="app-container" class="app-container">
         <div class="sidebar">
             <div class="sidebar-header">
@@ -106,14 +236,26 @@
                     <div class="avatar">
                         <img src="/static/avatars/smile_1.png" alt="User Avatar">
                     </div>
-                    <span class="username">Guest</span>
-                    <span class="status">Online</span>
+                    <div class="user-details">
+                        <span class="username">Guest</span>
+                        <span class="status">Online</span>
+                    </div>
+                    <button class="settings-btn" onclick="openUserSettings()" title="User Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
                 </div>
             </div>
             <div class="channel-category">
-                <h3>TEXT CHANNELS</h3>
-                <div class="channel active">
-                    <i class="fas fa-hashtag"></i><span>general</span>
+                <div class="category-header">
+                    <h3>TEXT CHANNELS</h3>
+                    <button class="add-channel-btn" onclick="showCreateChannelModal()" title="Create Channel">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="channels-list">
+                    <div class="channel active" data-channel="general">
+                        <i class="fas fa-hashtag"></i><span>general</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -196,6 +338,8 @@
     <script src="/static/chatInput.js"></script>
     <script src="/static/file_share.js"></script>
     <script src="/static/effects.js"></script>
+    <script src="/static/userSettings.js"></script>
+    <script src="/static/channels.js"></script>
     <script src="/static/lib/livekit-client.umd.js.map"></script>
 </body>
 </html>
