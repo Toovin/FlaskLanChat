@@ -31,7 +31,6 @@ const tabRegistry = {
                 console.error('Channel tab content not found');
                 showError('Channel tab content not found. Please refresh.');
             }
-            socket.emit('update_channels', { channels: [] });
         }
     },
     'file-share': {
@@ -153,36 +152,7 @@ socket.on('error', (data) => {
     if (loadingSpinner) loadingSpinner.style.display = 'none';
 });
 
-socket.on('update_channels', (data) => {
-    const channelList = document.querySelector('.channel-category');
-    if (channelList) {
-        const textChannels = document.querySelectorAll('.channel');
-        textChannels.forEach(c => c.remove());
-        data.channels.forEach(channel => {
-            const channelDiv = document.createElement('div');
-            channelDiv.className = `channel ${channel === currentChannel ? 'active' : ''}`;
-            channelDiv.innerHTML = `<i class="fas fa-hashtag"></i><span>${channel}</span>`;
-            channelDiv.addEventListener('click', () => {
-                document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
-                channelDiv.classList.add('active');
-                currentChannel = channel;
-                socket.emit('join_channel', { channel });
-                updateChannelHeader(channel);
-                setActiveTab('channel');
-                // Disconnect from voice room if switching channels
-                if (window.currentVoiceRoom) {
-                    window.currentVoiceRoom.disconnect();
-                    const voiceButton = document.querySelector('.voice-btn');
-                    if (voiceButton) {
-                        voiceButton.innerHTML = '<i class="fas fa-microphone"></i> Join Voice';
-                    }
-                    window.currentVoiceRoom = null;
-                }
-            });
-            channelList.appendChild(channelDiv);
-        });
-    }
-});
+
 
 socket.on('channel_history', (data) => {
     console.log('Received channel_history:', data);
@@ -197,7 +167,7 @@ socket.on('channel_history', (data) => {
     }
     data.messages.forEach(msg => {
         console.log('Adding message:', msg);
-        addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to);
+        addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to, msg.replies_count || 0);
         if (msg.reactions && msg.reactions.length > 0) {
             updateReactions(msg.id, msg.reactions);
         }
@@ -221,7 +191,7 @@ socket.on('receive_message', (data) => {
         }
         const tempMessage = document.querySelector(`.message-group.temp[data-message-id="${data.id}"]`) || document.querySelector('.message-group.temp');
         if (tempMessage) tempMessage.remove();
-        addMessage(data.sender, data.message, data.is_media, data.timestamp, false, data.id, data.replied_to);
+        addMessage(data.sender, data.message, data.is_media, data.timestamp, false, data.id, data.replied_to, data.replies_count || 0);
         if (data.reactions && data.reactions.length > 0) {
             updateReactions(data.id, data.reactions);
         }
@@ -381,12 +351,12 @@ socket.on('load_more_messages', async (data) => {
         await new Promise((resolve) => {
             socket.once('channel_history', (data) => {
                 if (data.channel === currentChannel) {
-                    data.messages.forEach(msg => {
-                        addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to);
-                        if (msg.reactions && msg.reactions.length > 0) {
-                            updateReactions(msg.id, msg.reactions);
-                        }
-                    });
+                data.messages.forEach(msg => {
+                    addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to, msg.replies_count || 0);
+                    if (msg.reactions && msg.reactions.length > 0) {
+                        updateReactions(msg.id, msg.reactions);
+                    }
+                });
                     resolve();
                 }
             });
