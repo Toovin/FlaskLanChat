@@ -5,7 +5,7 @@ def generate_selfsigned_cert():
     k = crypto.PKey()
     k.generate_key(crypto.TYPE_RSA, 4096)
     cert = crypto.X509()
-    cert.get_subject().CN = "192.168.193.10"
+    cert.get_subject().CN = "192.168.x.x" # PUT YOUR HOST IP HERE FOR CERT 
     cert.set_serial_number(1000)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(365 * 24 * 60 * 60)  # 1 year
@@ -18,4 +18,5 @@ def generate_selfsigned_cert():
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k).decode())
 
 if __name__ == "__main__":
+
     generate_selfsigned_cert()
