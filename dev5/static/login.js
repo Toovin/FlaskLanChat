@@ -5,8 +5,14 @@ console.log('Initial DOM state:', {
     loadingSpinner: !!loadingSpinner
 });
 
-if (appContainer) appContainer.style.display = 'none';
-if (loginModal) loginModal.style.display = 'flex';
+if (appContainer) {
+  appContainer.classList.add('hidden'); // Optional, or just hide via CSS
+}
+
+// Show modal using class-based visibility — triggers centering
+if (loginModal) {
+  loginModal.classList.add('active');
+}
 
 const loginForm = document.getElementById('login-form');
 if (loginForm) {
