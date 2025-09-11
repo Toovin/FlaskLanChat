@@ -53,6 +53,12 @@ function updateChannelHeader(channel) {
     if (channelDescription) channelDescription.textContent = `${channel} discussion channel`;
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function setActiveTab(tabName) {
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tab => {
@@ -122,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     console.log('Initializing UI: showing login modal');
     appContainer.classList.remove('visible');
-    loginModal.style.display = 'block';
+    loginModal.style.display = 'flex';
     loadingSpinner.style.display = 'none';
 
     // Example socket event handler for user registration
