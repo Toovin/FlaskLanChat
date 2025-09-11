@@ -25,17 +25,28 @@ function scrollMessagesToBottom(force = false) {
         return;
     }
     clearTimeout(scrollTimeout);
+
     requestAnimationFrame(() => {
+        // Force layout reflow to ensure scrollbar visibility
+        messagesContainer.style.overflowY = 'hidden';
+        void messagesContainer.offsetHeight;
+        messagesContainer.style.overflowY = 'auto';
+
+        // Simple scroll to bottom - let the browser handle the calculations
         messagesContainer.scrollTo({
             top: messagesContainer.scrollHeight,
             behavior: force ? 'instant' : 'smooth'
         });
+
+        console.log('Scrolled to bottom:', messagesContainer.scrollHeight);
+
+        // Hide new messages button
         const newMessagesButton = document.getElementById('new-messages-button');
         if (newMessagesButton) newMessagesButton.style.display = 'none';
     });
 }
 
-async function addMessage(sender, text, isMedia, timestamp, isTemp = false, messageId = null, repliedTo = null) {
+async function addMessage(sender, text, isMedia, timestamp, isTemp = false, messageId = null, repliedTo = null, repliesCount = 0) {
     const messagesContainer = document.getElementById('messages-container');
     if (!messagesContainer) {
         console.error('messages-container not found in DOM.');
@@ -59,6 +70,10 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
                 <i class="fas fa-reply"></i>
                 <span>Replying to ${escapeHtml(repliedSender)}: ${repliedText}</span>
             </div>`;
+    }
+    let repliesIndicator = '';
+    if (repliesCount > 0) {
+        repliesIndicator = `<div class="replies-indicator"><i class="fas fa-reply"></i> ${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}</div>`;
     }
     let parsedText = text;
     let attachments = [];
@@ -140,6 +155,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
                 <span class="username">${escapeHtml(sender)}</span>
                 <span class="timestamp">${timestamp ? moment(timestamp).format('MMM D, YYYY h:mm A') : 'Just now'}</span>
             </div>
+            ${repliesIndicator}
             ${messageContent}
             <div class="message-actions">
                 <div class="reactions-container"></div>
@@ -184,7 +200,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
                 messageInput.dataset.replyTo = messageId;
                 replyBar.innerHTML = `
                     <span>Replying to ${escapeHtml(sender)}</span>
-                    <button class="cancel-reply-btn" aria-label="Cancel reply">&times;</button>
+                    <button class="cancel-reply-btn" aria-label="Cancel reply"><i class="fas fa-times"></i></button>
                 `;
                 replyBar.style.display = 'flex';
                 const cancelReplyBtn = replyBar.querySelector('.cancel-reply-btn');
@@ -208,10 +224,10 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
             });
         });
     }
-    if (attachments.length === 1) {
+    if (attachments.length > 0) {
         const imgElement = messageGroup.querySelector('.message-image img');
         if (imgElement && messageId) {
-            const cleanSrc = imgElement.src.replace(/[\n\r]/g, ''); // Remove newlines
+            const cleanSrc = imgElement.src.replace(/[\n\r]/g, '');
             console.log('Binding image click for src:', cleanSrc);
             imgElement.addEventListener('click', () => {
                 console.log('Opening image viewer with src:', cleanSrc);
@@ -240,6 +256,18 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
     }
 }
 
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        const messageInput = document.querySelector('.message-input');
+        const replyBar = document.querySelector('.reply-bar');
+        if (messageInput && replyBar && messageInput.dataset.replyTo) {
+            delete messageInput.dataset.replyTo;
+            messageInput.placeholder = `Message #${currentChannel}`;
+            replyBar.style.display = 'none';
+        }
+    }
+});
+
 async function getMessageById(messageId) {
     return new Promise((resolve) => {
         socket.emit('get_message', { message_id: messageId, channel: currentChannel });
@@ -267,7 +295,7 @@ function scrollToMessage(messageId) {
         socket.once('channel_history', (data) => {
             if (data.channel === currentChannel) {
                 data.messages.forEach(msg => {
-                    addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to);
+                    addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to, msg.replies_count);
                     if (msg.reactions && msg.reactions.length > 0) {
                         updateReactions(msg.id, msg.reactions);
                     }
@@ -300,13 +328,11 @@ function showReactionPicker(messageId, messageGroup) {
             return;
         }
 
-        // Remove any existing reaction pickers
         document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
         const picker = document.createElement('div');
         picker.className = 'reaction-picker';
         console.log('Reaction picker created');
 
-        // Add emojis to the picker
         const emojis = ['👍', '👎', '❤️', '☠', '😂', '😮', '😢', '😡', '🙂', '😱', '🐕', '🐈', '🐿', '🐓'];
         emojis.forEach(emoji => {
             const button = document.createElement('button');
@@ -325,17 +351,15 @@ function showReactionPicker(messageId, messageGroup) {
             picker.appendChild(button);
         });
 
-        // Append picker to the messageGroup (parent of add-reaction-btn) for relative positioning
         const addReactionBtn = messageGroup.querySelector('.add-reaction-btn');
         if (!addReactionBtn) {
             console.error('add-reaction-btn not found in messageGroup');
             showError('Reaction button not found. Please refresh.');
             return;
         }
-        messageGroup.appendChild(picker); // Append to messageGroup instead of messages-container
+        messageGroup.appendChild(picker);
         console.log('Picker appended to messageGroup');
 
-        // Get positioning data
         const messagesContainer = document.getElementById('messages-container');
         if (!messagesContainer) {
             console.error('messages-container not found');
@@ -346,36 +370,22 @@ function showReactionPicker(messageId, messageGroup) {
         const containerRect = messagesContainer.getBoundingClientRect();
         const pickerWidth = 200;
 
-        // Check if there's enough space to the right
         const spaceRight = window.innerWidth - buttonRect.right;
         const wouldOverflowRight = spaceRight < pickerWidth;
 
-        // Position the picker (rely on CSS for top: 50%, transform: translateY(-50%), left: 100%)
         picker.style.position = 'absolute';
         if (wouldOverflowRight) {
-            // Flip to the left if not enough space on the right
             picker.style.left = 'auto';
-            picker.style.right = '100%'; // Position to the left of the button
-            picker.style.marginRight = '8px'; // Gap on the left side
+            picker.style.right = '100%';
+            picker.style.marginRight = '8px';
             picker.style.marginLeft = '0';
         } else {
-            // Position to the right (CSS handles left: 100%)
-            picker.style.left = ''; // Let CSS handle left: 100%
+            picker.style.left = '';
             picker.style.right = 'auto';
-            picker.style.marginLeft = ''; // Let CSS handle margin-left: 8px
+            picker.style.marginLeft = '';
             picker.style.marginRight = '0';
         }
 
-        // Ensure CSS handles vertical centering (top: 50%, transform: translateY(-50%))
-        // No need to set top or transform here if CSS is applied
-        console.log('Picker positioned:', {
-            left: picker.style.left,
-            right: picker.style.right,
-            marginLeft: picker.style.marginLeft,
-            marginRight: picker.style.marginRight
-        });
-
-        // Handle scroll if picker overflows bottom
         const pickerRect = picker.getBoundingClientRect();
         if (pickerRect.bottom > containerRect.bottom) {
             messagesContainer.scrollTo({
@@ -384,7 +394,6 @@ function showReactionPicker(messageId, messageGroup) {
             });
         }
 
-        // Close picker when clicking outside
         const closePicker = (event) => {
             if (!picker.contains(event.target) && !event.target.closest('.add-reaction-btn')) {
                 console.log('Closing picker');
@@ -458,7 +467,6 @@ function createCarousel(attachments, messageId) {
     return carouselHtml;
 }
 
-/* Carousel modification 9-7-0155AM, left and right button and key ui ux improvement */
 function initCarousel(id, attachments) {
     const container = document.getElementById(id);
     if (!container) return;
@@ -472,7 +480,7 @@ function initCarousel(id, attachments) {
 
     function renderAttachment(index) {
         const att = attachments[index];
-        const cleanAtt = att.replace(/[\n\r]/g, ''); // Remove newlines
+        const cleanAtt = att.replace(/[\n\r]/g, '');
         const ext = cleanAtt.split('.').pop().toLowerCase();
         let content = '';
         const imageExtensions = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'];
@@ -502,7 +510,6 @@ function initCarousel(id, attachments) {
         }
         main.innerHTML = content;
 
-        // Add click handler for images in the carousel main
         const imgElement = main.querySelector('img');
         if (imgElement) {
             imgElement.addEventListener('click', () => {
@@ -579,105 +586,3 @@ function initCarousel(id, attachments) {
     renderThumbs();
     showIndex(0);
 }
-
-
-/*
-function initCarousel(id, attachments) {
-    const container = document.getElementById(id);
-    if (!container) return;
-    const main = container.querySelector('.carousel-main');
-    const thumbs = container.querySelector('.carousel-thumbs');
-    const prevBtn = container.querySelector('.carousel-prev');
-    const nextBtn = container.querySelector('.carousel-next');
-    const slideshowBtn = container.querySelector('.carousel-slideshow');
-    let currentIndex = 0;
-    let slideshowInterval = null;
-    function renderAttachment(index) {
-        const att = attachments[index];
-        const cleanAtt = att.replace(/[\n\r]/g, ''); // Remove newlines
-        const ext = cleanAtt.split('.').pop().toLowerCase();
-        let content = '';
-        const imageExtensions = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'];
-        const videoExtensions = ['mp4', 'webm', 'avi', 'mov'];
-        if (imageExtensions.includes(ext)) {
-            console.log('Rendering carousel image:', cleanAtt);
-            content = `<img src="${escapeHtml(cleanAtt)}" alt="Attachment ${index + 1}" onclick="openImageViewer('${escapeHtml(cleanAtt)}')">`;
-        } else if (videoExtensions.includes(ext)) {
-            let shouldLoop = false;
-            const video = document.createElement('video');
-            video.src = cleanAtt;
-            video.onloadedmetadata = () => {
-                if (video.duration < 60) shouldLoop = true;
-                video.remove();
-            };
-            video.load();
-            console.log('Rendering carousel video:', cleanAtt);
-            content = `<video controls ${shouldLoop ? 'loop' : ''}>
-                        <source src="${escapeHtml(cleanAtt)}" type="video/${ext === 'mov' ? 'quicktime' : ext}">
-                        Your browser does not support the video tag.
-                    </video>`;
-        } else {
-            const icon = getDocIcon(ext);
-            const fileName = cleanAtt.split('/').pop();
-            console.log('Rendering carousel document:', cleanAtt);
-            content = `<div class="doc-preview"><i class="fas ${icon} fa-3x"></i><a href="${escapeHtml(cleanAtt)}" target="_blank">${escapeHtml(fileName)}</a></div>`;
-        }
-        main.innerHTML = content;
-    }
-    function renderThumbs() {
-        thumbs.innerHTML = '';
-        attachments.forEach((att, idx) => {
-            const cleanAtt = att.replace(/[\n\r]/g, '');
-            const ext = cleanAtt.split('.').pop().toLowerCase();
-            let thumb = '';
-            if (['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext)) {
-                thumb = `<img src="${escapeHtml(cleanAtt)}" alt="Thumb ${idx + 1}">`;
-            } else if (['mp4', 'webm', 'avi', 'mov'].includes(ext)) {
-                thumb = `<i class="fas fa-video"></i>`;
-            } else {
-                thumb = `<i class="fas ${getDocIcon(ext)}"></i>`;
-            }
-            const thumbDiv = document.createElement('div');
-            thumbDiv.className = 'carousel-thumb' + (idx === currentIndex ? ' active' : '');
-            thumbDiv.innerHTML = thumb;
-            thumbDiv.onclick = () => {
-                console.log('Thumbnail clicked:', cleanAtt);
-                if (['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext)) {
-                    openImageViewer(escapeHtml(cleanAtt));
-                } else if (['mp4', 'webm', 'avi', 'mov'].includes(ext)) {
-                    let shouldLoop = false;
-                    const video = document.createElement('video');
-                    video.src = cleanAtt;
-                    video.onloadedmetadata = () => {
-                        if (video.duration < 60) shouldLoop = true;
-                        video.remove();
-                    };
-                    video.load();
-                    openVideoViewer(escapeHtml(cleanAtt), shouldLoop);
-                }
-                showIndex(idx);
-            };
-            thumbs.appendChild(thumbDiv);
-        });
-    }
-    function showIndex(index) {
-        currentIndex = (index + attachments.length) % attachments.length;
-        renderAttachment(currentIndex);
-        renderThumbs();
-    }
-    function toggleSlideshow() {
-        if (slideshowInterval) {
-            clearInterval(slideshowInterval);
-            slideshowInterval = null;
-            slideshowBtn.textContent = '▶️';
-        } else {
-            slideshowInterval = setInterval(() => showIndex(currentIndex + 1), 3000);
-            slideshowBtn.textContent = '⏸️';
-        }
-    }
-    prevBtn.onclick = () => showIndex(currentIndex - 1);
-    nextBtn.onclick = () => showIndex(currentIndex + 1);
-    slideshowBtn.onclick = toggleSlideshow;
-    renderThumbs();
-    showIndex(0);
-}*/
