@@ -40,12 +40,21 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('image-gen-modal not found in DOM');
     }
 
+    // Ensure modal stays hidden initially
+    setTimeout(() => {
+        if (imageGenModal && imageGenModal.style.display !== 'none') {
+            imageGenModal.style.display = 'none';
+            console.log('image-gen-modal re-hidden after timeout');
+        }
+    }, 100);
+
     const messageInput = document.querySelector('.message-input');
     const fileInput = document.getElementById('chat-file-upload-input');
     const sendButton = document.querySelector('.send-image-btn');
+    const uploadButton = document.querySelector('.upload-btn');
 
-    console.log('Chat input elements:', { messageInput, fileInput, sendButton, chatInputContainer });
-    if (!messageInput || !fileInput || !sendButton || !chatInputContainer) {
+    console.log('Chat input elements:', { messageInput, fileInput, sendButton, uploadButton, chatInputContainer });
+    if (!messageInput || !fileInput || !sendButton || !uploadButton || !chatInputContainer) {
         showError('Chat input elements not found. Please refresh.');
         return;
     }
@@ -65,6 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let selectedFiles = [];
     let isSending = false;
+
+    // Upload button event listener
+    if (uploadButton) {
+        uploadButton.addEventListener('click', () => {
+            if (fileInput) {
+                fileInput.click();
+            }
+        });
+    }
 
     if (fileInput) {
         fileInput.multiple = true;
@@ -314,6 +332,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function adjustMessagesPadding() {
+        const messagesContainer = document.getElementById('messages-container');
+        const chatInputContainer = document.querySelector('.chat-input-container');
+        if (messagesContainer && chatInputContainer) {
+            const inputHeight = chatInputContainer.getBoundingClientRect().height;
+            messagesContainer.style.paddingBottom = (inputHeight + 20) + 'px'; // 20px buffer
+        }
+    }
+
+    // Adjust padding on load
+    adjustMessagesPadding();
+
+    // Adjust on window resize
+    window.addEventListener('resize', adjustMessagesPadding);
+
+    // Adjust when input height changes (textarea resize)
+    if (messageInput) {
+        messageInput.addEventListener('input', adjustMessagesPadding);
+    }
+
     const messagesContainer = document.getElementById('messages-container');
     if (messagesContainer) {
         messagesContainer.addEventListener('scroll', () => {
@@ -401,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const cancelButton = document.querySelector('.cancel-button');
+    const cancelButton = document.querySelector('#image-gen-modal .cancel-button');
     if (cancelButton) {
         cancelButton.addEventListener('click', (e) => {
             e.preventDefault();
@@ -416,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 request_id: requestId
             });
             document.getElementById('image-gen-modal').style.display = 'none';
+            console.log('Modal display set to none');
             delete messageInput.dataset.replyTo;
             replyBar.style.display = 'none';
             const tempMessage = document.querySelector('.message-group.temp');
@@ -424,5 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tempMessage.remove();
             }
         });
+    } else {
+        console.warn('Cancel button not found in image-gen-modal');
     }
 });
