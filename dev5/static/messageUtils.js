@@ -54,6 +54,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
     }
     const messageGroup = document.createElement('div');
     messageGroup.className = 'message-group';
+    messageGroup.style.position = 'relative';
     if (isTemp) messageGroup.classList.add('temp');
     if (messageId) messageGroup.dataset.messageId = messageId;
     const user = users_db.find(u => u.username === sender);
