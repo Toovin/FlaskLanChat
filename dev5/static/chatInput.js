@@ -433,6 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('image-gen-modal').style.display = 'none';
                 delete messageInput.dataset.replyTo;
                 replyBar.style.display = 'none';
+                messageInput.placeholder = `Message #${currentChannel}`;
+                messageInput.value = '';
             } finally {
                 isSending = false;
             }
@@ -457,6 +459,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Modal display set to none');
             delete messageInput.dataset.replyTo;
             replyBar.style.display = 'none';
+            messageInput.placeholder = `Message #${currentChannel}`;
+            messageInput.value = '';
             const tempMessage = document.querySelector('.message-group.temp');
             if (tempMessage) {
                 console.log('Removing temporary message');
