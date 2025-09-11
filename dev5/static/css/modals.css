@@ -180,23 +180,25 @@
 }*/
 
 .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Slightly darker for consistency */
-    z-index: 1000;
-    overflow: auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1050;
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  display: flex; /* Flex layout enabled */
+  align-items: center;     /* Vertical centering */
+  justify-content: center; /* Horizontal centering */
+  transition: opacity 0.3s ease;
 }
-
+.modal.active {
+  display: flex;
+}
 .modal-content {
     color: var(--text-primary);
-    margin: 5% auto;
+    margin: 0 auto;
     padding: 20px;
     border-radius: 8px;
     width: 90%;
