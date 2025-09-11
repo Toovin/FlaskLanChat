@@ -6,8 +6,12 @@ import requests
 from datetime import datetime
 import uuid
 from lc_config import EXTENSIONS_DIR
+import os
+
+UPLOAD_URL = os.getenv('UPLOAD_URL', 'http://localhost:6970/upload-file')
 
 class CommandProcessor:
+
     def __init__(self, socketio, users_db):
         self.socketio = socketio
         self.users_db = users_db
@@ -60,7 +64,7 @@ class CommandProcessor:
                         files = {'file': (f'generated_image_{uuid.uuid4()}.jpg', io.BytesIO(image_data), 'image/jpeg')}
                         try:
                             upload_response = requests.post(
-                                'http://localhost:6970/upload-file',
+                                UPLOAD_URL,
                                 files=files,
                                 timeout=30
                             )
