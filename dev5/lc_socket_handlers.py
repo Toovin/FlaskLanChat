@@ -1,7 +1,7 @@
 from flask_socketio import emit, join_room, leave_room
 from werkzeug.security import check_password_hash
 from flask import request
-from lc_database import save_user, get_user_by_username, update_user_avatar, load_messages, add_reaction, remove_reaction, get_reactions, get_standard_timestamp
+from lc_database import save_user, get_user_by_username, update_user_avatar, load_messages, add_reaction, remove_reaction, get_reactions, get_standard_timestamp, update_user_settings, get_user_settings, create_channel, delete_channel, load_channels
 import sqlite3
 import uuid
 import threading
@@ -180,6 +180,7 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
                     'is_media': response['is_media'],
                     'timestamp': timestamp,
                     'replied_to': replied_to,
+                    'replies_count': 0,
                     'reactions': []
                 }, room=channel)
             return
@@ -200,6 +201,7 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
             'is_media': is_media,
             'timestamp': timestamp,
             'replied_to': replied_to,
+            'replies_count': 0,
             'reactions': []
         }, room=channel)
 
@@ -253,7 +255,9 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
                 conn.close()
                 return
             before_timestamp = row[0]
-            c.execute("SELECT id, sender, message, is_media, timestamp, replied_to FROM messages WHERE channel = ? AND timestamp < ? ORDER BY timestamp DESC LIMIT 50",
+            c.execute("""SELECT m.id, m.sender, m.message, m.is_media, m.timestamp, m.replied_to,
+                              (SELECT COUNT(*) FROM messages r WHERE r.replied_to = m.id) as replies_count
+                       FROM messages m WHERE m.channel = ? AND m.timestamp < ? ORDER BY m.timestamp DESC LIMIT 50""",
                       (channel, before_timestamp))
             messages = [
                 {
@@ -263,6 +267,7 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
                     'is_media': row[3],
                     'timestamp': row[4],
                     'replied_to': row[5],
+                    'replies_count': row[6],
                     'reactions': get_reactions(row[0])
                 }
                 for row in c.fetchall()
@@ -275,35 +280,6 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
             })
         except Exception as e:
             emit('error', {'msg': f'Failed to load more messages: {str(e)}'})
-
-    @socketio.on('create_channel')
-    def handle_create_channel(data):
-        channel = data['channel'].strip()
-        if not channel or channel in channels:
-            emit('error', {'msg': 'Invalid or duplicate channel name'})
-            return
-        conn = sqlite3.connect('devchat.db')
-        c = conn.cursor()
-        c.execute("INSERT INTO channels (name) VALUES (?)", (channel,))
-        conn.commit()
-        conn.close()
-        channels.append(channel)
-        socketio.emit('update_channels', {'channels': channels})
-
-    @socketio.on('delete_channel')
-    def handle_delete_channel(data):
-        channel = data['channel'].strip()
-        if channel == 'general' or channel not in channels:
-            emit('error', {'msg': 'Cannot delete general channel or invalid channel'})
-            return
-        conn = sqlite3.connect('devchat.db')
-        c = conn.cursor()
-        c.execute("DELETE FROM channels WHERE name = ?", (channel,))
-        c.execute("DELETE FROM messages WHERE channel = ?", (channel,))
-        conn.commit()
-        conn.close()
-        channels.remove(channel)
-        socketio.emit('update_channels', {'channels': channels})
 
     @socketio.on('join_channel')
     def handle_join_channel(data):
@@ -325,6 +301,7 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
                 'is_media': m['is_media'],
                 'timestamp': m['timestamp'],
                 'replied_to': m['replied_to'],
+                'replies_count': m['replies_count'],
                 'reactions': m['reactions']
             } for m in messages],
             'is_load_more': False
@@ -387,6 +364,126 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
             }, room=channel)
         except Exception as e:
             emit('error', {'msg': f'Failed to remove reaction: {str(e)}'})
+
+    @socketio.on('get_user_settings')
+    def handle_get_user_settings():
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        try:
+            settings = get_user_settings(user_uuid)
+            if settings:
+                emit('user_settings', settings)
+            else:
+                emit('error', {'msg': 'Failed to retrieve user settings'})
+        except Exception as e:
+            emit('error', {'msg': f'Failed to get user settings: {str(e)}'})
+
+    @socketio.on('update_user_settings')
+    def handle_update_user_settings(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        settings = data.get('settings', {})
+        if not settings:
+            emit('error', {'msg': 'No settings provided'})
+            return
+        try:
+            update_user_settings(user_uuid, settings)
+            # Update the in-memory user data
+            if user_uuid in users_db:
+                users_db[user_uuid].update(settings)
+            emit('settings_updated', {'success': True})
+            # Notify all users of the update
+            socketio.emit('update_users', {
+                'users': [users_db[uuid] for uuid in users.values() if uuid in users_db]
+            })
+        except Exception as e:
+            emit('error', {'msg': f'Failed to update settings: {str(e)}'})
+
+    @socketio.on('create_channel')
+    def handle_create_channel(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        channel_name = data.get('channel', '').strip()
+        if not channel_name:
+            emit('error', {'msg': 'Channel name is required'})
+            return
+        # Sanitize channel name
+        import re
+        channel_name = re.sub(r'[^a-zA-Z0-9-_]', '-', channel_name).lower()
+        channel_name = re.sub(r'-+', '-', channel_name).strip('-')
+        if not channel_name or len(channel_name) > 50:
+            emit('error', {'msg': 'Invalid channel name'})
+            return
+        try:
+            if create_channel(channel_name):
+                # Reload channels and notify all users
+                channels.clear()
+                channels.extend(load_channels())
+                socketio.emit('update_channels', {'channels': channels})
+                emit('channel_created', {'channel': channel_name})
+            else:
+                emit('error', {'msg': 'Channel already exists'})
+        except Exception as e:
+            emit('error', {'msg': f'Failed to create channel: {str(e)}'})
+
+    @socketio.on('delete_channel')
+    def handle_delete_channel(data):
+        user_uuid = users.get(request.sid)
+        if not user_uuid:
+            emit('error', {'msg': 'User not authenticated'})
+            return
+        channel_name = data.get('channel', '').strip()
+        if not channel_name:
+            emit('error', {'msg': 'Channel name is required'})
+            return
+        if channel_name == 'general':
+            emit('error', {'msg': 'Cannot delete the general channel'})
+            return
+        try:
+            if delete_channel(channel_name):
+                # Reload channels and notify all users
+                channels.clear()
+                channels.extend(load_channels())
+                socketio.emit('update_channels', {'channels': channels})
+                emit('channel_deleted', {'channel': channel_name})
+            else:
+                emit('error', {'msg': 'Failed to delete channel'})
+        except Exception as e:
+            emit('error', {'msg': f'Failed to delete channel: {str(e)}'})
+
+    @socketio.on('get_message')
+    def handle_get_message(data):
+        message_id = data.get('message_id')
+        channel = data.get('channel')
+        if not message_id or not channel:
+            emit('error', {'msg': 'Missing message ID or channel'})
+            return
+        try:
+            conn = sqlite3.connect('devchat.db')
+            c = conn.cursor()
+            c.execute("SELECT sender, message, is_media, timestamp, replied_to FROM messages WHERE id = ? AND channel = ?", (message_id, channel))
+            row = c.fetchone()
+            conn.close()
+            if row:
+                emit('message_data', {
+                    'message': {
+                        'sender': row[0],
+                        'message': row[1],
+                        'is_media': row[2],
+                        'timestamp': row[3],
+                        'replied_to': row[4]
+                    }
+                })
+            else:
+                emit('error', {'msg': 'Message not found'})
+        except Exception as e:
+            emit('error', {'msg': f'Failed to fetch message: {str(e)}'})
 
     @socketio.on('disconnect')
     def handle_disconnect():
