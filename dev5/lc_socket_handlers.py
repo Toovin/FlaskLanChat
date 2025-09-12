@@ -137,7 +137,9 @@ def register_socket_handlers(socketio, users_db, channels, command_processor, li
                 if key in users_db[user_uuid]:
                     users_db[user_uuid][key] = value
             
-            emit('settings_updated', {'success': True})
+            # Get the updated settings to send back to client
+            updated_settings = get_user_settings(user_uuid)
+            emit('settings_updated', {'success': True, 'settings': updated_settings})
             socketio.emit('update_users', {
                 'users': [users_db[uuid] for uuid in users.values() if uuid in users_db]
             })

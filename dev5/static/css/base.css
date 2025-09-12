@@ -119,3 +119,80 @@ body {
     background-color: var(--accent);
     color: var(--text-primary);
 }
+
+/* Theme Classes */
+.theme-blue {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #1e40af;
+    --bg-quaternary: #0f1629;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    --green: #10b981;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --border: #1e40af;
+    --border-light: #64748b;
+    --hover: rgba(59, 130, 246, 0.1);
+    --active: rgba(59, 130, 246, 0.2);
+    --neon-glow: #3b82f6;
+    --pulse-color: rgba(59, 130, 246, 0.3);
+}
+
+.theme-forest {
+    --bg-primary: #0f1b0f;
+    --bg-secondary: #1a2e1a;
+    --bg-tertiary: #065f46;
+    --bg-quaternary: #0a1a0a;
+    --text-primary: #ecfdf5;
+    --text-secondary: #d1fae5;
+    --text-muted: #6ee7b7;
+    --green: #10b981;
+    --accent: #059669;
+    --accent-hover: #047857;
+    --border: #065f46;
+    --border-light: #6ee7b7;
+    --hover: rgba(5, 150, 105, 0.1);
+    --active: rgba(5, 150, 105, 0.2);
+    --neon-glow: #10b981;
+    --pulse-color: rgba(16, 185, 129, 0.3);
+}
+
+.theme-sunset {
+    --bg-primary: #1c0e0a;
+    --bg-secondary: #2d1b12;
+    --bg-tertiary: #9a3412;
+    --bg-quaternary: #1a0d08;
+    --text-primary: #fef2f2;
+    --text-secondary: #fecaca;
+    --text-muted: #fb7185;
+    --green: #f59e0b;
+    --accent: #ea580c;
+    --accent-hover: #c2410c;
+    --border: #9a3412;
+    --border-light: #fb7185;
+    --hover: rgba(234, 88, 12, 0.1);
+    --active: rgba(234, 88, 12, 0.2);
+    --neon-glow: #f59e0b;
+    --pulse-color: rgba(245, 158, 11, 0.3);
+}
+
+.theme-dark {
+    --bg-primary: #2f3136;
+    --bg-secondary: #36393f;
+    --bg-tertiary: #40444b;
+    --bg-quaternary: #2f3136;
+    --text-primary: #dcddde;
+    --text-secondary: #b9bbbe;
+    --text-muted: #72767d;
+    --green: #43b581;
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+    --border: #40444b;
+    --border-light: #72767d;
+    --hover: rgba(88, 101, 242, 0.1);
+    --active: rgba(88, 101, 242, 0.2);
+    --neon-glow: #5865f2;
+    --pulse-color: rgba(88, 101, 242, 0.3);
+}

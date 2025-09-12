@@ -82,6 +82,7 @@ def init_db():
             ('status', 'TEXT DEFAULT "online"'),
             ('custom_status', 'TEXT'),
             ('theme', 'TEXT DEFAULT "darker"'),
+            ('custom_theme', 'TEXT'),
             ('compact_mode', 'INTEGER DEFAULT 0'),
             ('show_timestamps', 'INTEGER DEFAULT 1'),
             ('allow_dms', 'INTEGER DEFAULT 1'),
@@ -167,7 +168,7 @@ def load_users():
         conn = sqlite3.connect('devchat.db')
         c = conn.cursor()
         c.execute("""SELECT uuid, username, password_hash, avatar_url, display_name, status, 
-                     custom_status, theme, compact_mode, show_timestamps, allow_dms, 
+                     custom_status, theme, custom_theme, compact_mode, show_timestamps, allow_dms, 
                      show_online_status, typing_indicators FROM users""")
         for row in c.fetchall():
             users_db[row[0]] = {
@@ -178,11 +179,12 @@ def load_users():
                 'status': row[5] or 'online',
                 'custom_status': row[6],
                 'theme': row[7] or 'darker',
-                'compact_mode': bool(row[8]),
-                'show_timestamps': bool(row[9]) if row[9] is not None else True,
-                'allow_dms': bool(row[10]) if row[10] is not None else True,
-                'show_online_status': bool(row[11]) if row[11] is not None else True,
-                'typing_indicators': bool(row[12]) if row[12] is not None else True
+                'custom_theme': row[8],
+                'compact_mode': bool(row[9]),
+                'show_timestamps': bool(row[10]) if row[10] is not None else True,
+                'allow_dms': bool(row[11]) if row[11] is not None else True,
+                'show_online_status': bool(row[12]) if row[12] is not None else True,
+                'typing_indicators': bool(row[13]) if row[13] is not None else True
             }
         conn.close()
         print(f"Loaded {len(users_db)} users from database")
@@ -237,7 +239,7 @@ def update_user_settings(uuid, settings):
         values = []
         
         allowed_fields = [
-            'display_name', 'status', 'custom_status', 'theme',
+            'display_name', 'status', 'custom_status', 'theme', 'custom_theme',
             'compact_mode', 'show_timestamps', 'allow_dms', 
             'show_online_status', 'typing_indicators', 'avatar_url'
         ]
@@ -265,7 +267,7 @@ def get_user_settings(uuid):
     try:
         conn = sqlite3.connect('devchat.db')
         c = conn.cursor()
-        c.execute("""SELECT display_name, status, custom_status, theme, compact_mode, 
+        c.execute("""SELECT display_name, status, custom_status, theme, custom_theme, compact_mode, 
                      show_timestamps, allow_dms, show_online_status, typing_indicators, avatar_url 
                      FROM users WHERE uuid = ?""", (uuid,))
         row = c.fetchone()
@@ -275,12 +277,13 @@ def get_user_settings(uuid):
                 'status': row[1] or 'online',
                 'custom_status': row[2],
                 'theme': row[3] or 'darker',
-                'compact_mode': bool(row[4]),
-                'show_timestamps': bool(row[5]) if row[5] is not None else True,
-                'allow_dms': bool(row[6]) if row[6] is not None else True,
-                'show_online_status': bool(row[7]) if row[7] is not None else True,
-                'typing_indicators': bool(row[8]) if row[8] is not None else True,
-                'avatar_url': row[9]
+                'custom_theme': row[4],
+                'compact_mode': bool(row[5]),
+                'show_timestamps': bool(row[6]) if row[6] is not None else True,
+                'allow_dms': bool(row[7]) if row[7] is not None else True,
+                'show_online_status': bool(row[8]) if row[8] is not None else True,
+                'typing_indicators': bool(row[9]) if row[9] is not None else True,
+                'avatar_url': row[10]
             }
         return None
     except Exception as e:
@@ -295,7 +298,7 @@ def get_user_by_username(username):
         conn = sqlite3.connect('devchat.db')
         c = conn.cursor()
         c.execute("""SELECT uuid, username, password_hash, avatar_url, display_name, status, 
-                     custom_status, theme, compact_mode, show_timestamps, allow_dms, 
+                     custom_status, theme, custom_theme, compact_mode, show_timestamps, allow_dms, 
                      show_online_status, typing_indicators FROM users WHERE username = ?""", (username,))
         row = c.fetchone()
         conn.close()
@@ -310,11 +313,12 @@ def get_user_by_username(username):
                 'status': row[5] or 'online',
                 'custom_status': row[6],
                 'theme': row[7] or 'darker',
-                'compact_mode': bool(row[8]),
-                'show_timestamps': bool(row[9]) if row[9] is not None else True,
-                'allow_dms': bool(row[10]) if row[10] is not None else True,
-                'show_online_status': bool(row[11]) if row[11] is not None else True,
-                'typing_indicators': bool(row[12]) if row[12] is not None else True
+                'custom_theme': row[8],
+                'compact_mode': bool(row[9]),
+                'show_timestamps': bool(row[10]) if row[10] is not None else True,
+                'allow_dms': bool(row[11]) if row[11] is not None else True,
+                'show_online_status': bool(row[12]) if row[12] is not None else True,
+                'typing_indicators': bool(row[13]) if row[13] is not None else True
             }
         print(f"User not found: {username}")
         return None

@@ -5,6 +5,7 @@ let currentUserSettings = {
     status: 'online',
     custom_status: '',
     theme: 'darker',
+    custom_theme: null,
     compact_mode: false,
     show_timestamps: true,
     allow_dms: true,
@@ -41,7 +42,12 @@ function initUserSettings() {
         if (data.success) {
             showSettingsMessage('Settings saved successfully!', 'success');
             settingsChanged = false;
-            updateUIAfterSettingsChange();
+            // Update currentUserSettings with the saved data if provided
+            if (data.settings) {
+                currentUserSettings = { ...currentUserSettings, ...data.settings };
+                console.log('Settings updated, current theme:', currentUserSettings.theme); // Debug log
+            }
+            // Don't call updateUIAfterSettingsChange here since theme should already be applied from preview
         }
     });
     
@@ -126,10 +132,66 @@ function setupSettingsFormHandlers() {
         option.addEventListener('click', () => {
             themeOptions.forEach(o => o.classList.remove('active'));
             option.classList.add('active');
+            
+            const selectedTheme = option.getAttribute('data-theme');
+            
+            // Show/hide custom theme section
+            const customSection = document.getElementById('custom-theme-section');
+            if (selectedTheme === 'custom') {
+                customSection.style.display = 'block';
+                loadCustomThemeColors();
+            } else {
+                customSection.style.display = 'none';
+            }
+            
+            // Apply theme immediately for preview
+            previewTheme(selectedTheme);
+            
             settingsChanged = true;
             updateSaveButtonState();
         });
     });
+    
+    // Custom theme handlers
+    const customColorInputs = document.querySelectorAll('#custom-theme-section input[type="color"]');
+    customColorInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            settingsChanged = true;
+            updateSaveButtonState();
+            updateCustomThemePreview();
+            
+            // If custom theme is currently selected, apply changes immediately
+            const activeTheme = document.querySelector('.theme-option.active');
+            if (activeTheme && activeTheme.getAttribute('data-theme') === 'custom') {
+                const colors = getCustomThemeData();
+                applyCustomTheme(colors);
+            }
+        });
+        
+        // Also listen for input events for real-time preview
+        input.addEventListener('input', () => {
+            updateCustomThemePreview();
+            
+            // If custom theme is currently selected, apply changes immediately
+            const activeTheme = document.querySelector('.theme-option.active');
+            if (activeTheme && activeTheme.getAttribute('data-theme') === 'custom') {
+                const colors = getCustomThemeData();
+                applyCustomTheme(colors);
+            }
+        });
+    });
+    
+    // Preview custom theme button
+    const previewBtn = document.getElementById('preview-custom-theme');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', previewCustomTheme);
+    }
+    
+    // Reset custom theme button
+    const resetBtn = document.getElementById('reset-custom-theme');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetCustomTheme);
+    }
     
     // Save button handler
     const saveButton = document.querySelector('.save-settings-btn');
@@ -209,11 +271,23 @@ function populateSettingsForm() {
     if (compactModeCheckbox) compactModeCheckbox.checked = currentUserSettings.compact_mode;
     if (showTimestampsCheckbox) showTimestampsCheckbox.checked = currentUserSettings.show_timestamps;
     
-    // Theme selection
+    // Theme selection - always set to match current settings
     const themeOptions = document.querySelectorAll('.theme-option');
     themeOptions.forEach(option => {
         option.classList.toggle('active', option.getAttribute('data-theme') === currentUserSettings.theme);
     });
+    
+    // Apply the current theme to make sure UI matches settings
+    previewTheme(currentUserSettings.theme);
+    
+    // Show custom theme section if custom theme is selected
+    const customSection = document.getElementById('custom-theme-section');
+    if (currentUserSettings.theme === 'custom') {
+        customSection.style.display = 'block';
+        loadCustomThemeColors();
+    } else {
+        customSection.style.display = 'none';
+    }
     
     // Privacy tab
     const allowDmsCheckbox = document.getElementById('settings-allow-dms');
@@ -248,6 +322,7 @@ function collectSettingsFromForm() {
     const activeTheme = document.querySelector('.theme-option.active');
     if (activeTheme) {
         settings.theme = activeTheme.getAttribute('data-theme');
+        console.log('Collecting theme from form:', settings.theme); // Debug log
     }
     
     // Privacy settings
@@ -262,6 +337,13 @@ function collectSettingsFromForm() {
     // Avatar URL if changed
     if (currentUserSettings.avatar_url) {
         settings.avatar_url = currentUserSettings.avatar_url;
+    }
+    
+    // Custom theme data if custom theme is selected
+    if (settings.theme === 'custom') {
+        const customTheme = getCustomThemeData();
+        settings.custom_theme = JSON.stringify(customTheme);
+        console.log('Saving custom theme:', customTheme); // Debug log
     }
     
     return settings;
@@ -299,14 +381,7 @@ function updateUIAfterSettingsChange() {
     // Update user info display
     updateUserInfo();
     
-    // Apply theme if changed
-    const theme = currentUserSettings.theme;
-    if (theme) {
-        document.body.className = document.body.className.replace(/theme-\w+/g, '');
-        document.body.classList.add(`theme-${theme}`);
-    }
-    
-    // Apply other UI changes based on settings
+    // Apply other UI changes based on settings (but not theme - that's handled by preview)
     if (currentUserSettings.compact_mode) {
         document.body.classList.add('compact-mode');
     } else {
@@ -357,3 +432,154 @@ document.addEventListener('keydown', (event) => {
         closeUserSettings();
     }
 });
+
+// Custom Theme Functions
+function loadCustomThemeColors() {
+    const defaultColors = {
+        primaryBg: '#000000',
+        secondaryBg: '#333333',
+        accent: '#6b6b6b',
+        textPrimary: '#ffffff',
+        textSecondary: '#e6f7ff',
+        border: '#33aa33'
+    };
+    
+    let customTheme = defaultColors;
+    if (currentUserSettings.custom_theme) {
+        try {
+            customTheme = { ...defaultColors, ...JSON.parse(currentUserSettings.custom_theme) };
+        } catch (e) {
+            console.warn('Failed to parse custom theme, using defaults');
+        }
+    }
+    
+    document.getElementById('primary-bg-color').value = customTheme.primaryBg;
+    document.getElementById('secondary-bg-color').value = customTheme.secondaryBg;
+    document.getElementById('accent-color').value = customTheme.accent;
+    document.getElementById('text-primary-color').value = customTheme.textPrimary;
+    document.getElementById('text-secondary-color').value = customTheme.textSecondary;
+    document.getElementById('border-color').value = customTheme.border;
+    
+    updateCustomThemePreview();
+}
+
+function getCustomThemeData() {
+    return {
+        primaryBg: document.getElementById('primary-bg-color').value,
+        secondaryBg: document.getElementById('secondary-bg-color').value,
+        accent: document.getElementById('accent-color').value,
+        textPrimary: document.getElementById('text-primary-color').value,
+        textSecondary: document.getElementById('text-secondary-color').value,
+        border: document.getElementById('border-color').value
+    };
+}
+
+function updateCustomThemePreview() {
+    const colors = getCustomThemeData();
+    const customPreview = document.querySelector('.custom-theme');
+    
+    if (customPreview) {
+        customPreview.style.setProperty('--custom-bg-primary', colors.primaryBg);
+        customPreview.style.setProperty('--custom-bg-secondary', colors.secondaryBg);
+    }
+}
+
+function previewCustomTheme() {
+    const colors = getCustomThemeData();
+    applyCustomTheme(colors);
+    showSettingsMessage('Custom theme preview applied! Save to make permanent.', 'success');
+}
+
+function resetCustomTheme() {
+    document.getElementById('primary-bg-color').value = '#000000';
+    document.getElementById('secondary-bg-color').value = '#333333';
+    document.getElementById('accent-color').value = '#6b6b6b';
+    document.getElementById('text-primary-color').value = '#ffffff';
+    document.getElementById('text-secondary-color').value = '#e6f7ff';
+    document.getElementById('border-color').value = '#33aa33';
+    
+    updateCustomThemePreview();
+    settingsChanged = true;
+    updateSaveButtonState();
+}
+
+function applyCustomTheme(colors) {
+    const root = document.documentElement;
+    root.style.setProperty('--bg-primary', colors.primaryBg);
+    root.style.setProperty('--bg-secondary', colors.secondaryBg);
+    root.style.setProperty('--accent', colors.accent);
+    root.style.setProperty('--text-primary', colors.textPrimary);
+    root.style.setProperty('--text-secondary', colors.textSecondary);
+    root.style.setProperty('--border', colors.border);
+    root.style.setProperty('--border-light', colors.border);
+    
+    // Generate hover and active states
+    const accentRgb = hexToRgb(colors.accent);
+    if (accentRgb) {
+        root.style.setProperty('--hover', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.1)`);
+        root.style.setProperty('--active', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.2)`);
+        root.style.setProperty('--pulse-color', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.3)`);
+    }
+}
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function clearAllThemes() {
+    // Remove all theme classes
+    document.body.className = document.body.className.replace(/theme-\w+/g, '');
+    
+    // Clear custom CSS properties that might have been set
+    const root = document.documentElement;
+    const customProperties = [
+        '--bg-primary', '--bg-secondary', '--bg-tertiary', '--bg-quaternary',
+        '--text-primary', '--text-secondary', '--text-muted',
+        '--accent', '--accent-hover', '--border', '--border-light',
+        '--hover', '--active', '--pulse-color', '--neon-glow', '--green'
+    ];
+    
+    customProperties.forEach(prop => {
+        root.style.removeProperty(prop);
+    });
+}
+
+function previewTheme(themeName) {
+    // Clear existing themes first
+    clearAllThemes();
+    
+    if (themeName === 'custom') {
+        // For custom theme, first try to get colors from form inputs
+        // If form isn't populated yet, use saved custom_theme data
+        let colors;
+        try {
+            colors = getCustomThemeData();
+            // Check if we have actual color data (not just default empty values)
+            if (!colors.primaryBg || colors.primaryBg === '#000000') {
+                // Try to use saved custom theme data
+                if (currentUserSettings.custom_theme) {
+                    colors = { ...colors, ...JSON.parse(currentUserSettings.custom_theme) };
+                }
+            }
+        } catch (e) {
+            // Fallback to default colors if parsing fails
+            colors = {
+                primaryBg: '#000000',
+                secondaryBg: '#333333',
+                accent: '#6b6b6b',
+                textPrimary: '#ffffff',
+                textSecondary: '#e6f7ff',
+                border: '#33aa33'
+            };
+        }
+        applyCustomTheme(colors);
+    } else {
+        // For built-in themes, just add the theme class
+        document.body.classList.add(`theme-${themeName}`);
+    }
+}
