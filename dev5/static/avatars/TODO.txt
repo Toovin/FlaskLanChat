@@ -1,1 +1,0 @@
-Perhaps have a folder for DEFAULT avatars and USER avatars.
