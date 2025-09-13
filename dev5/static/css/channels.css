@@ -1,0 +1,120 @@
+/* Server List - Added fun glow */
+.server-list {
+    width: 72px;
+    background-color: #000000;
+    /*background-image: url('/static/images/channel-bg.jpg');*/
+    background-size: 128px fit;
+    background-repeat: repeat-y;
+    background-position: center top;
+    background-attachment: scroll;
+    background-blend-mode: darken;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 8px;
+}
+
+.server-icon {
+    width: 48px;
+    height: 48px;
+    background-color: var(--bg-secondary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+    /* Add fun glow on hover */
+    box-shadow: 0 0 10px var(--neon-glow);
+}
+
+.server-icon:hover {
+    border-radius: 16px;
+    background-color: var(--accent);
+    transform: scale(1.003); /* Only increase by 0.003 on hover */
+}
+
+.server-icon.active {
+    background-color: var(--accent);
+    border-radius: 16px;
+    box-shadow: 0 0 20px var(--pulse-color);
+    transform: scale(1.003); /* Consistent size increase */
+}
+
+.server-icon.add-server {
+    background-color: var(--bg-secondary);
+    color: var(--border); /* Was var(--green) */
+}
+
+.server-icon.add-server:hover {
+    background-color: var(--border); /* Was var(--green) */
+    color: white;
+    transform: scale(1.003);
+}
+
+/* Channel List - Added fun border */
+.channel-list {
+    width: 240px;
+    background-color: var(--bg-secondary);
+    padding: 16px 8px;
+    overflow-y: auto;
+    background-image: url('/static/images/channel-bg.jpg');
+    background-size: 240px auto;
+    background-repeat: repeat-y;
+    background-position: center top;
+    background-attachment: scroll;
+    background-blend-mode: normal; /* Changed from overlay to normal */
+}
+
+.server-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.server-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.channel-category {
+    padding: 16px 8px 0;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.channel {
+    padding: 4px 8px;
+    margin: 1px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.channel:hover {
+    background-color: var(--hover);
+    color: var(--text-primary);
+    transform: scale(1.003); /* Only increase by 0.003 on hover */
+}
+
+.channel.active {
+    background-color: var(--active);
+    color: var(--text-primary);
+    box-shadow: 0 0 15px var(--pulse-color);
+    transform: scale(1.003); /* Consistent size increase */
+}
