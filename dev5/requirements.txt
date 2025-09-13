@@ -1,9 +1,0 @@
-Flask==2.3.3
-Flask-SocketIO==5.3.6
-python-socketio==5.8.0
-Werkzeug==2.3.7
-yt-dlp==2023.11.16
-Pillow==10.0.1
-opencv-python==4.8.1.78
-numpy==1.24.3
-requests==2.31.0

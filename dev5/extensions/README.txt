@@ -1,1 +1,0 @@
-If any extensions give errors, append '.old' to the file name, such as 'chicken_pic.py.old'
