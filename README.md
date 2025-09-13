@@ -1,4 +1,4 @@
-# FlaskLanChat - a mostly working lan chat with an extreme lack of secure features and operations. DONT USE IN SENSITIVE ENVIRONMENTS WITH OUT IMPLEMENTING HTTPS/CERTS. 
+# FlaskLanChat - a mostly (Maybe -- im working on redoing this boilerplate) working lan chat with an extreme lack of secure features and operations. DONT USE IN SENSITIVE ENVIRONMENTS WITH OUT IMPLEMENTING HTTPS/CERTS. 
 FlaskLanChat - Send/receive  group messages, share files, and some other extra AI goodies with some elbow grease. 
 
 
