@@ -1,4 +1,4 @@
-let currentChannels = ['general'];
+window.currentChannels = ['general'];
 
 function showCreateChannelModal() {
     const modal = document.getElementById('create-channel-modal');
@@ -32,41 +32,48 @@ function sanitizeChannelName(name) {
 
 function createChannel(channelName) {
     const sanitizedName = sanitizeChannelName(channelName);
-    
+
     if (!sanitizedName) {
         showError('Invalid channel name');
         return;
     }
-    
+
     if (currentChannels.includes(sanitizedName)) {
         showError('Channel already exists');
         return;
     }
-    
+
     socket.emit('create_channel', {
         channel: sanitizedName
     });
 }
 
 function switchToChannel(channelName) {
-    if (currentChannel === channelName) return;
-    
+    if (window.currentChannel === channelName) return;
+
     const channels = document.querySelectorAll('.channel');
     channels.forEach(ch => ch.classList.remove('active'));
-    
+
     const targetChannel = document.querySelector(`.channel[data-channel="${channelName}"]`);
     if (targetChannel) {
         targetChannel.classList.add('active');
     }
-    
-    currentChannel = channelName;
+
+    window.currentChannel = channelName;
     updateChannelHeader(channelName);
-    
+
     const messageInput = document.querySelector('.message-input');
     if (messageInput) {
         messageInput.placeholder = `Message #${channelName}`;
     }
-    
+
+    // Restore scrollability after channel switch
+    const messagesContainer = document.getElementById('messages-container');
+    if (messagesContainer) {
+        messagesContainer.style.overflow = 'hidden';
+        setTimeout(() => messagesContainer.style.overflow = 'auto', 0);
+    }
+
     socket.emit('join_channel', {
         channel: channelName
     });
@@ -75,27 +82,37 @@ function switchToChannel(channelName) {
 function renderChannelList(channels) {
     const channelsList = document.getElementById('channels-list');
     if (!channelsList) return;
-    
-    currentChannels = channels;
+
+    window.currentChannels = channels;
     channelsList.innerHTML = '';
-    
+
+    // Check if currentChannel exists in the channels list
+    if (!channels.includes(window.currentChannel)) {
+        window.currentChannel = 'general';
+        updateChannelHeader('general');
+        const messageInput = document.querySelector('.message-input');
+        if (messageInput) {
+            messageInput.placeholder = 'Message #general';
+        }
+    }
+
     channels.forEach(channel => {
         const channelElement = document.createElement('div');
-        channelElement.className = `channel${channel === currentChannel ? ' active' : ''}`;
+        channelElement.className = `channel${channel === window.currentChannel ? ' active' : ''}`;
         channelElement.setAttribute('data-channel', channel);
-        
+
         channelElement.innerHTML = `
             <i class="fas fa-hashtag"></i>
             <span>${escapeHtml(channel)}</span>
             ${channel !== 'general' ? '<button class="delete-channel-btn" onclick="deleteChannel(\'' + channel + '\')" title="Delete Channel"><i class="fas fa-times"></i></button>' : ''}
         `;
-        
+
         channelElement.addEventListener('click', (e) => {
             if (!e.target.classList.contains('delete-channel-btn') && !e.target.closest('.delete-channel-btn')) {
                 switchToChannel(channel);
             }
         });
-        
+
         channelsList.appendChild(channelElement);
     });
 }
@@ -105,13 +122,13 @@ function deleteChannel(channelName) {
         showError('Cannot delete the general channel');
         return;
     }
-    
+
     if (confirm(`Are you sure you want to delete #${channelName}? This will delete all messages in the channel.`)) {
         socket.emit('delete_channel', {
             channel: channelName
         });
-        
-        if (currentChannel === channelName) {
+
+        if (window.currentChannel === channelName) {
             switchToChannel('general');
         }
     }
@@ -129,12 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     const cancelButton = document.querySelector('#create-channel-modal .cancel-button');
     if (cancelButton) {
         cancelButton.addEventListener('click', hideCreateChannelModal);
     }
-    
+
     const modal = document.getElementById('create-channel-modal');
     if (modal) {
         modal.addEventListener('click', (e) => {
@@ -143,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const modal = document.getElementById('create-channel-modal');

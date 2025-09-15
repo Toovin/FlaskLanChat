@@ -82,6 +82,10 @@
 
 .channel-category {
     padding: 16px 8px 0;
+    margin: 8px;
+    margin-top: 0;
+    border-radius: 8px;
+    box-shadow: 0 0 10px var(--neon-glow);
 }
 
 .category-header {

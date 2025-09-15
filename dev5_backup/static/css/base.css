@@ -1,0 +1,198 @@
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    cursor: url('/static/images/cursor2.png'), auto;
+}
+
+:root {
+    --bg-primary: #000000;
+    --bg-secondary: #333333;
+    --bg-tertiary: #990000;
+    --bg-quaternary: #000001;
+    --text-primary: #ffffff;
+    --text-secondary: #e6f7ff;
+    --text-muted: #a0d2ff;
+    --green: #33aa33;
+    --accent: #6b6b6b;
+    --accent-hover: rgba(128, 128, 128, 1);
+    --border: #33aa33;
+    --border-light: #a0d2ff;
+    --hover: rgba(255, 255, 255, 0.05);
+    --active: rgba(255, 107, 107, 0.1);
+    --neon-glow: #999910;
+    --pulse-color: rgba(255, 107, 107, 0.2);
+}
+
+/* Shared Button Styles */
+.btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+    background-color: var(--hover);
+    color: var(--text-primary);
+    transform: scale(1.003);
+}
+
+/* App Container */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+.app-container:not(.visible) {
+    display: none;
+}
+
+/* Child Elements */
+.sidebar {
+    width: 240px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    min-height: 0;
+}
+
+.members-sidebar {
+    width: 240px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+.tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#tab-content-channel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background-color: var(--bg-secondary);
+}
+
+.tab {
+    padding: 8px 16px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-radius: 4px;
+}
+
+.tab.active {
+    background-color: var(--accent);
+    color: var(--text-primary);
+}
+
+/* Theme Classes */
+.theme-blue {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #1e40af;
+    --bg-quaternary: #0f1629;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    --green: #10b981;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --border: #1e40af;
+    --border-light: #64748b;
+    --hover: rgba(59, 130, 246, 0.1);
+    --active: rgba(59, 130, 246, 0.2);
+    --neon-glow: #3b82f6;
+    --pulse-color: rgba(59, 130, 246, 0.3);
+}
+
+.theme-forest {
+    --bg-primary: #0f1b0f;
+    --bg-secondary: #1a2e1a;
+    --bg-tertiary: #065f46;
+    --bg-quaternary: #0a1a0a;
+    --text-primary: #ecfdf5;
+    --text-secondary: #d1fae5;
+    --text-muted: #6ee7b7;
+    --green: #10b981;
+    --accent: #059669;
+    --accent-hover: #047857;
+    --border: #065f46;
+    --border-light: #6ee7b7;
+    --hover: rgba(5, 150, 105, 0.1);
+    --active: rgba(5, 150, 105, 0.2);
+    --neon-glow: #10b981;
+    --pulse-color: rgba(16, 185, 129, 0.3);
+}
+
+.theme-sunset {
+    --bg-primary: #1c0e0a;
+    --bg-secondary: #2d1b12;
+    --bg-tertiary: #9a3412;
+    --bg-quaternary: #1a0d08;
+    --text-primary: #fef2f2;
+    --text-secondary: #fecaca;
+    --text-muted: #fb7185;
+    --green: #f59e0b;
+    --accent: #ea580c;
+    --accent-hover: #c2410c;
+    --border: #9a3412;
+    --border-light: #fb7185;
+    --hover: rgba(234, 88, 12, 0.1);
+    --active: rgba(234, 88, 12, 0.2);
+    --neon-glow: #f59e0b;
+    --pulse-color: rgba(245, 158, 11, 0.3);
+}
+
+.theme-dark {
+    --bg-primary: #2f3136;
+    --bg-secondary: #36393f;
+    --bg-tertiary: #40444b;
+    --bg-quaternary: #2f3136;
+    --text-primary: #dcddde;
+    --text-secondary: #b9bbbe;
+    --text-muted: #72767d;
+    --green: #43b581;
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+    --border: #40444b;
+    --border-light: #72767d;
+    --hover: rgba(88, 101, 242, 0.1);
+    --active: rgba(88, 101, 242, 0.2);
+    --neon-glow: #5865f2;
+    --pulse-color: rgba(88, 101, 242, 0.3);
+}

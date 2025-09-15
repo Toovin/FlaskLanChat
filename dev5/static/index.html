@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAN Chat</title>
+    <title>DEV Chat</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="/static/lib/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/base.css">
     <link rel="stylesheet" href="/static/css/login.css">
     <link rel="stylesheet" href="/static/css/viewers.css">
@@ -20,24 +23,27 @@
 <body>
     <div id="error-message" style="display: none; position: fixed; top: 10px; right: 10px; background: #dc3545; color: white; padding: 10px; border-radius: 4px; z-index: 1000;"></div>
 
-    <div id="login-modal" class="modal">
-        <div class="login-background"></div>
+    <div id="login-modal" class="modal-overlay">
         <div class="modal-content">
-            <h2>Welcome to LAN Chat</h2>
+            <h2>Welcome to DEV Chat</h2>
             <p>Sign in or create an account</p>
             <form id="login-form">
                 <div class="form-group">
                     <label for="username-input">Username</label>
                     <input type="text" id="username-input" name="username" required>
                 </div>
-                <div class="form-group">
-                    <label for="password-input">Password</label>
-                    <input type="password" id="password-input" name="password" required>
-                </div>
-                <div class="form-group">
-                    <label for="avatar-input">Avatar (optional)</label>
-                    <input type="file" id="avatar-input" name="avatar" accept="image/*">
-                </div>
+            <div class="form-group">
+                <label for="password-input">Password</label>
+                <input type="password" id="password-input" name="password" required>
+            </div>
+            <div class="form-group" id="verify-password-group" style="display: none;">
+                <label for="verify-password-input">Verify Password</label>
+                <input type="password" id="verify-password-input" name="verify_password">
+            </div>
+            <div class="form-group">
+                <label for="avatar-input">Avatar (optional)</label>
+                <input type="file" id="avatar-input" name="avatar" accept="image/*">
+            </div>
                 <div class="form-actions button-container">
                     <button type="submit" id="login-button">Sign In</button>
                     <button type="submit" id="register-button">Create Account</button>
@@ -100,36 +106,6 @@
         </div>
     </div>
 
-    <div id="poll-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2>Create Poll</h2>
-            <form id="poll-form" action="javascript:void(0)">
-                <div class="form-group">
-                    <label for="poll-question-input">Question</label>
-                    <input type="text" id="poll-question-input" name="question" placeholder="What's your question?" required>
-                </div>
-                <div class="form-group">
-                    <label>Options</label>
-                    <div id="poll-options-container">
-                        <div class="poll-option-input">
-                            <input type="text" placeholder="Option 1" required>
-                            <button type="button" class="remove-option-btn" style="display: none;">&times;</button>
-                        </div>
-                        <div class="poll-option-input">
-                            <input type="text" placeholder="Option 2" required>
-                            <button type="button" class="remove-option-btn" style="display: none;">&times;</button>
-                        </div>
-                    </div>
-                    <button type="button" id="add-option-btn">+ Add Option</button>
-                </div>
-                <div class="form-actions">
-                    <button type="submit">Create Poll</button>
-                    <button type="button" class="cancel-button">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <div id="create-channel-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2>Create Channel</h2>
@@ -147,17 +123,40 @@
         </div>
     </div>
 
+    <div id="create-folder-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Create New Folder</h2>
+            <form id="create-folder-form" action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="folder-name-input">Folder Name</label>
+                    <input type="text" id="folder-name-input" name="name" placeholder="Enter folder name" required>
+                    <small>Folder names cannot contain: / \ : * ? " < > |</small>
+                </div>
+                <div class="form-group">
+                    <label for="folder-parent-select">Parent Folder</label>
+                    <select id="folder-parent-select" name="parent_id">
+                        <option value="">Share (Root)</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Create Folder</button>
+                    <button type="button" class="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="user-settings-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <button class="close-modal" onclick="closeUserSettings()">&times;</button>
             <h2>User Settings</h2>
-            
+
             <div class="settings-tabs">
                 <div class="settings-tab active" data-tab="profile">Profile</div>
                 <div class="settings-tab" data-tab="appearance">Appearance</div>
                 <div class="settings-tab" data-tab="privacy">Privacy</div>
             </div>
-            
+
             <div id="settings-tab-profile" class="settings-tab-content">
                 <div class="form-group">
                     <label>Current Avatar</label>
@@ -165,19 +164,19 @@
                         <img id="settings-current-avatar" src="/static/avatars/smile_1.png" alt="Current Avatar">
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="settings-avatar-input">Upload New Avatar</label>
                     <input type="file" id="settings-avatar-input" accept="image/*">
                     <small>Recommended: Square image, max 5MB</small>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="settings-display-name">Display Name</label>
                     <input type="text" id="settings-display-name" placeholder="Your display name">
                     <small>This is how others see your name</small>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="settings-status">Status</label>
                     <select id="settings-status">
@@ -187,17 +186,21 @@
                         <option value="invisible">Invisible</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="settings-custom-status">Custom Status</label>
                     <input type="text" id="settings-custom-status" placeholder="What's happening?" maxlength="100">
                 </div>
             </div>
-            
-            <div id="settings-tab-appearance" class="settings-tab-content" style="display: none;">
-                <div class="form-group">
-                    <label>Theme</label>
-                    <div class="theme-options">
+
+             <div id="settings-tab-appearance" class="settings-tab-content" style="display: none;">
+                 <div class="form-group">
+                     <label>Theme</label>
+                     <div class="theme-options">
+                        <div class="theme-option" data-theme="light">
+                            <div class="theme-preview light-theme"></div>
+                            <span>Light</span>
+                        </div>
                         <div class="theme-option" data-theme="dark">
                             <div class="theme-preview dark-theme"></div>
                             <span>Dark</span>
@@ -208,103 +211,241 @@
                         </div>
                         <div class="theme-option" data-theme="blue">
                             <div class="theme-preview blue-theme"></div>
-                            <span>Ocean Blue</span>
+                            <span>Blue</span>
                         </div>
-                        <div class="theme-option" data-theme="forest">
-                            <div class="theme-preview forest-theme"></div>
-                            <span>Forest</span>
+                        <div class="theme-option" data-theme="purple">
+                            <div class="theme-preview purple-theme"></div>
+                            <span>Purple</span>
                         </div>
-                        <div class="theme-option" data-theme="sunset">
-                            <div class="theme-preview sunset-theme"></div>
-                            <span>Sunset</span>
+                        <div class="theme-option" data-theme="retro-green">
+                            <div class="theme-preview retro-green-theme"></div>
+                            <span>Retro Green</span>
                         </div>
-                        <div class="theme-option" data-theme="custom">
-                            <div class="theme-preview custom-theme"></div>
-                            <span>Custom</span>
+                        <div class="theme-option" data-theme="ice-blue">
+                            <div class="theme-preview ice-blue-theme"></div>
+                            <span>Ice Blue</span>
                         </div>
-                    </div>
+                        <div class="theme-option" data-theme="pika-yellow">
+                            <div class="theme-preview pika-yellow-theme"></div>
+                            <span>Pika Yellow</span>
+                        </div>
+                        <div class="theme-option" data-theme="nature">
+                            <div class="theme-preview nature-theme"></div>
+                            <span>Nature</span>
                 </div>
-                
-                <div class="form-group" id="custom-theme-section" style="display: none;">
-                    <label>Custom Color Palette</label>
-                    <div class="custom-colors">
-                        <div class="color-group">
-                            <label for="primary-bg-color">Primary Background</label>
-                            <input type="color" id="primary-bg-color" value="#000000">
-                        </div>
-                        <div class="color-group">
-                            <label for="secondary-bg-color">Secondary Background</label>
-                            <input type="color" id="secondary-bg-color" value="#333333">
-                        </div>
-                        <div class="color-group">
-                            <label for="accent-color">Accent Color</label>
-                            <input type="color" id="accent-color" value="#6b6b6b">
-                        </div>
-                        <div class="color-group">
-                            <label for="text-primary-color">Primary Text</label>
-                            <input type="color" id="text-primary-color" value="#ffffff">
-                        </div>
-                        <div class="color-group">
-                            <label for="text-secondary-color">Secondary Text</label>
-                            <input type="color" id="text-secondary-color" value="#e6f7ff">
-                        </div>
-                        <div class="color-group">
-                            <label for="border-color">Border Color</label>
-                            <input type="color" id="border-color" value="#33aa33">
-                        </div>
-                    </div>
-                    <div class="custom-theme-actions">
-                        <button type="button" id="preview-custom-theme" class="preview-btn">Preview</button>
-                        <button type="button" id="reset-custom-theme" class="reset-btn">Reset to Default</button>
-                    </div>
+            </div>
+            <div class="user-info">
+                <div class="avatar">
+                    <img src="/static/avatars/smile_1.png" alt="User Avatar">
                 </div>
-                
+                <div class="user-details">
+                    <span class="username">Guest</span>
+                    <span class="status">Online</span>
+                </div>
+                <button class="settings-btn" onclick="openUserSettings()" title="User Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </div>
+
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="settings-compact-mode"> 
+                        <input type="checkbox" id="settings-compact-mode">
                         Compact Mode
                     </label>
                     <small>Show more messages on screen</small>
                 </div>
-                
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="settings-show-timestamps"> 
-                        Show Timestamps
-                    </label>
-                    <small>Display message timestamps</small>
-                </div>
-            </div>
-            
+
+                 <div class="form-group">
+                     <label>
+                         <input type="checkbox" id="settings-show-timestamps">
+                         Show Timestamps
+                     </label>
+                     <small>Display message timestamps</small>
+                 </div>
+
+                  <div class="form-group">
+                      <label>
+                          <input type="checkbox" id="settings-animated-bg">
+                          Animated Background
+                      </label>
+                      <small>Enable subtle moving background pattern</small>
+                  </div>
+
+                  <div class="form-group">
+                      <label for="settings-cursor-effect">Cursor Effect</label>
+                      <select id="settings-cursor-effect">
+                          <option value="none">None</option>
+                          <option value="orbiting">Orbiting Pastas</option>
+                          <option value="falling">Falling Pastas</option>
+                      </select>
+                      <small>Choose the cursor particle effect</small>
+                  </div>
+              </div>
+
             <div id="settings-tab-privacy" class="settings-tab-content" style="display: none;">
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="settings-allow-dms"> 
+                        <input type="checkbox" id="settings-allow-dms">
                         Allow Direct Messages
                     </label>
                     <small>Let other users send you private messages</small>
                 </div>
-                
+
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="settings-show-online-status"> 
+                        <input type="checkbox" id="settings-show-online-status">
                         Show Online Status
                     </label>
                     <small>Let others see when you're online</small>
                 </div>
-                
+
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="settings-typing-indicators"> 
+                        <input type="checkbox" id="settings-typing-indicators">
                         Send Typing Indicators
                     </label>
                     <small>Let others know when you're typing</small>
                 </div>
             </div>
-            
+
             <div class="settings-actions">
                 <button type="button" class="save-settings-btn">Save Changes</button>
-                <button type="button" class="cancel-button" onclick="closeUserSettings()">Cancel</button>
+                <button type="button" class="cancel-button" onclick="closeUserSettings()">Close</button>
+            </div>
+        </div>
+    </div>
+
+     <div id="voice-warning-modal" class="modal" style="display: none;">
+         <div class="modal-content">
+             <h2>Voice Unavailable</h2>
+             <p>Voice is unavailable until solutions are found. Thanks!</p>
+             <div class="form-actions">
+                 <button type="button" class="cancel-button">OK</button>
+             </div>
+         </div>
+     </div>
+
+     <div id="adventurer-recruit-modal" class="modal" style="display: none;">
+         <div class="modal-content">
+             <h2>Recruit Adventurer</h2>
+             <div class="adventurer-classes">
+                 <div class="class-category">
+                     <h3>Melee</h3>
+                     <div class="class-options">
+                         <button class="class-btn" data-class="stealth">Stealth (50 Gold)</button>
+                         <button class="class-btn" data-class="finesse">Finesse (50 Gold)</button>
+                         <button class="class-btn" data-class="brute">Brute (50 Gold)</button>
+                     </div>
+                 </div>
+                 <div class="class-category">
+                     <h3>Healer</h3>
+                     <div class="class-options">
+                         <button class="class-btn" data-class="cleric">Cleric (60 Gold)</button>
+                         <button class="class-btn" data-class="spirit">Spirit (60 Gold)</button>
+                         <button class="class-btn" data-class="nature">Nature (60 Gold)</button>
+                     </div>
+                 </div>
+                 <div class="class-category">
+                     <h3>Caster</h3>
+                     <div class="class-options">
+                         <button class="class-btn" data-class="arcane">Arcane (70 Gold)</button>
+                         <button class="class-btn" data-class="summoner">Summoner (70 Gold)</button>
+                         <button class="class-btn" data-class="enchanter">Enchanter (70 Gold)</button>
+                     </div>
+                 </div>
+                 <div class="class-category">
+                     <h3>Hybrid</h3>
+                     <div class="class-options">
+                         <button class="class-btn" data-class="bard">Bard (80 Gold)</button>
+                         <button class="class-btn" data-class="knight">Knight (80 Gold)</button>
+                         <button class="class-btn" data-class="tamer">Tamer (80 Gold)</button>
+                     </div>
+                 </div>
+             </div>
+             <div class="form-actions">
+                 <button type="button" class="cancel-button" onclick="closeAdventurerRecruitModal()">Cancel</button>
+             </div>
+         </div>
+     </div>
+
+    <div id="dice-modal" class="modal" style="display: none;">
+        <div class="modal-content dice-modal-content">
+            <button class="close-modal" onclick="closeDiceModal()">&times;</button>
+            <h2>🎲 Roll Dice</h2>
+            
+            <div class="dice-tabs">
+                <div class="dice-tab active" data-tab="standard">Standard D&D</div>
+                <div class="dice-tab" data-tab="custom">Custom</div>
+            </div>
+            
+            <div id="dice-tab-standard" class="dice-tab-content">
+                <div class="dice-grid">
+                    <button class="dice-btn" data-sides="4">
+                        <span class="dice-icon">🔶</span>
+                        <span class="dice-label">d4</span>
+                    </button>
+                    <button class="dice-btn" data-sides="6">
+                        <span class="dice-icon">⚁</span>
+                        <span class="dice-label">d6</span>
+                    </button>
+                    <button class="dice-btn" data-sides="8">
+                        <span class="dice-icon">🔸</span>
+                        <span class="dice-label">d8</span>
+                    </button>
+                    <button class="dice-btn" data-sides="10">
+                        <span class="dice-icon">🔟</span>
+                        <span class="dice-label">d10</span>
+                    </button>
+                    <button class="dice-btn" data-sides="100">
+                        <span class="dice-icon">💯</span>
+                        <span class="dice-label">d10%</span>
+                    </button>
+                    <button class="dice-btn" data-sides="12">
+                        <span class="dice-icon">🔷</span>
+                        <span class="dice-label">d12</span>
+                    </button>
+                    <button class="dice-btn" data-sides="20">
+                        <span class="dice-icon">🎲</span>
+                        <span class="dice-label">d20</span>
+                    </button>
+                </div>
+                
+                <div class="dice-options">
+                    <div class="dice-input-group">
+                        <label for="dice-count">Number of Dice</label>
+                        <input type="number" id="dice-count" min="1" max="20" value="1">
+                    </div>
+                    <div class="dice-input-group">
+                        <label for="dice-modifier">Modifier</label>
+                        <input type="number" id="dice-modifier" value="0" placeholder="+/-">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="dice-tab-custom" class="dice-tab-content" style="display: none;">
+                <div class="dice-input-group">
+                    <label for="custom-dice-sides">Number of Sides</label>
+                    <input type="number" id="custom-dice-sides" min="2" max="1000" value="20">
+                </div>
+                <div class="dice-input-group">
+                    <label for="custom-dice-count">Number of Dice</label>
+                    <input type="number" id="custom-dice-count" min="1" max="20" value="1">
+                </div>
+                <div class="dice-input-group">
+                    <label for="custom-dice-modifier">Modifier</label>
+                    <input type="number" id="custom-dice-modifier" value="0" placeholder="+/-">
+                </div>
+                <button class="roll-custom-dice-btn">Roll Custom Dice</button>
+            </div>
+            
+            <div class="current-roll" style="display: none;">
+                <h3>Current Roll:</h3>
+                <div class="roll-display">
+                    <span class="roll-formula"></span>
+                    <span class="roll-result"></span>
+                </div>
+                <button class="send-roll-btn">Send to Chat</button>
             </div>
         </div>
     </div>
@@ -313,18 +454,6 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h1>LAN Chat</h1>
-                <div class="user-info">
-                    <div class="avatar">
-                        <img src="/static/avatars/smile_1.png" alt="User Avatar">
-                    </div>
-                    <div class="user-details">
-                        <span class="username">Guest</span>
-                        <span class="status">Online</span>
-                    </div>
-                    <button class="settings-btn" onclick="openUserSettings()" title="User Settings">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
             </div>
             <div class="channel-category">
                 <div class="category-header">
@@ -341,16 +470,35 @@
             </div>
         </div>
 
-        <div class="main-content">
-            <div class="tabs">
-                <div class="tab active" data-tab="channel">
-                    <span>general</span>
-                    <div class="channel-description">general discussion channel</div>
-                </div>
-                <div class="tab" data-tab="file-share">
-                    <span>File Share</span>
-                </div>
+        <div class="user-info" onclick="openUserSettings()" title="User Settings" style="cursor: pointer;">
+            <div class="avatar">
+                <img src="/static/avatars/smile_1.png" alt="User Avatar">
             </div>
+            <div class="user-details">
+                <span class="username">Guest</span>
+                <span class="status">Online</span>
+            </div>
+            <button class="settings-btn" onclick="event.stopPropagation(); openUserSettings()" title="User Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+
+        <div class="main-content">
+             <div class="tabs">
+                 <div class="tab active" data-tab="channel">
+                     <span>general</span>
+                     <div class="channel-description">general discussion channel</div>
+                 </div>
+                 <div class="tab" data-tab="file-share">
+                     <span>File Share</span>
+                 </div>
+                 <div class="tab" data-tab="media">
+                     <span>Media</span>
+                 </div>
+                 <div class="tab" data-tab="adventure">
+                     <span>Adventure</span>
+                 </div>
+             </div>
 
             <div id="tab-content-channel" class="tab-content">
                 <div id="messages-container" class="messages-container">
@@ -371,8 +519,8 @@
                             <input type="file" id="chat-file-upload-input" multiple style="display: none;" accept="image/png,image/webp,image/jpeg,image/gif,application/pdf,.doc,.docx,text/plain,.md,video/mp4,video/webm,video/avi,video/quicktime">
                             <button class="action-btn send-image-btn"><i class="fas fa-paper-plane"></i></button>
                             <button class="action-btn upload-btn"><i class="fas fa-upload"></i></button>
-                            <button class="action-btn poll-btn"><i class="fas fa-poll"></i> Poll</button>
-                            <button class="action-btn voice-btn"><i class="fas fa-microphone"></i> Join Voice</button>
+                            <button class="action-btn voice-btn"><i class="fas fa-microphone"></i> Voice</button>
+                            <button class="action-btn dice-btn" onclick="openDiceModal()"><i class="fas fa-dice"></i> Dice</button>
                             <label class="auto-scroll-label">
                                 <input type="checkbox" id="auto-scroll-checkbox"> Auto-Scroll
                             </label>
@@ -383,14 +531,114 @@
 
             <div id="tab-content-file-share" class="tab-content" style="display: none;">
                 <div class="file-share-container">
-                    <button class="upload-btn">Upload</button>
-                    <input type="file" id="file-share-upload-input" multiple style="display: none;">
-                    <div class="file-list"></div>
+                    <div class="file-share-controls">
+                        <button class="upload-btn">Upload</button>
+                        <button class="create-folder-btn">New Folder</button>
+                        <input type="file" id="file-share-upload-input" multiple style="display: none;">
+                    </div>
+                    <div class="file-share-layout">
+                        <div class="folder-tree">
+                            <div class="folder-tree-header">
+                                <h3>Folders</h3>
+                            </div>
+                            <div class="folder-tree-content" id="folder-tree-content">
+                                <!-- Folder tree will be populated here -->
+                            </div>
+                        </div>
+                        <div class="file-content">
+                            <div class="current-folder-path" id="current-folder-path">
+                                <i class="fas fa-folder"></i> Share
+                            </div>
+                            <div class="file-list" id="file-list">
+                                <!-- Files will be displayed here -->
                 </div>
             </div>
+            <div class="user-info">
+                <div class="avatar">
+                    <img src="/static/avatars/smile_1.png" alt="User Avatar">
+                </div>
+                <div class="user-details">
+                    <span class="username">Guest</span>
+                    <span class="status">Online</span>
+                </div>
+                <button class="settings-btn" onclick="openUserSettings()" title="User Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
         </div>
+                </div>
+            </div>
 
-        <div class="members-sidebar">
+             <div id="tab-content-media" class="tab-content" style="display: none;">
+                 <div class="media-upload-section">
+                     <input type="file" id="media-upload-input" multiple accept="video/*,audio/*" style="display: none;">
+                     <button class="upload-btn">Upload Media</button>
+                 </div>
+                 <div class="media-input-section">
+                     <input type="text" id="media-url-input" placeholder="Enter YouTube/Video URL">
+                     <button class="download-btn">Download</button>
+                 </div>
+                <div class="media-player-section">
+                    <div class="media-player-container">
+                        <video id="media-player-video" controls style="display: none;"></video>
+                        <audio id="media-player-audio" controls style="display: none;"></audio>
+                        <div class="player-placeholder">Select a media file to play</div>
+                    </div>
+                    <div class="media-controls">
+                        <button id="play-pause-btn">Play</button>
+                        <button id="stop-btn">Stop</button>
+                    </div>
+                </div>
+                <div class="media-files-grid"></div>
+             </div>
+
+             <div id="tab-content-adventure" class="tab-content" style="display: none;">
+                 <div class="adventure-container">
+                     <div class="city-header">
+                         <h2>Your City</h2>
+                         <div class="city-resources">
+                             <div class="resource">Gold: <span id="city-gold">0</span></div>
+                             <div class="resource">Wood: <span id="city-wood">0</span></div>
+                             <div class="resource">Stone: <span id="city-stone">0</span></div>
+                             <div class="resource">Food: <span id="city-food">0</span></div>
+                         </div>
+                     </div>
+
+                     <div class="city-sections">
+                         <div class="city-section">
+                             <h3>Villagers</h3>
+                             <div id="villagers-list" class="units-list">
+                                 <!-- Villagers will be populated here -->
+                             </div>
+                             <button class="recruit-btn" onclick="recruitVillager()">Recruit Villager (10 Gold)</button>
+                         </div>
+
+                         <div class="city-section">
+                             <h3>Adventurers</h3>
+                             <div id="adventurers-list" class="units-list">
+                                 <!-- Adventurers will be populated here -->
+                             </div>
+                             <button class="recruit-btn" onclick="showAdventurerRecruitModal()">Recruit Adventurer</button>
+                         </div>
+
+                         <div class="city-section">
+                             <h3>Guards</h3>
+                             <div id="guards-list" class="units-list">
+                                 <!-- Guards will be populated here -->
+                             </div>
+                             <button class="recruit-btn" onclick="recruitGuard()">Recruit Guard (25 Gold)</button>
+                         </div>
+                     </div>
+
+                     <div class="city-actions">
+                         <button onclick="viewOtherCities()">View Other Cities</button>
+                         <button onclick="sendMission()">Send Mission</button>
+                     </div>
+                 </div>
+             </div>
+         </div>
+
+         <div class="members-sidebar">
             <div class="member-header">
                 <h3>MEMBERS - 0</h3>
             </div>
@@ -411,18 +659,19 @@
 
     <script src="/static/lib/socket.io.min.js"></script>
     <script src="/static/lib/moment.min.js"></script>
-    <script src="/static/lib/livekit-client.umd.min.js"></script>
     <script src="/static/core.js"></script>
     <script src="/static/viewers.js"></script>
     <script src="/static/login.js"></script>
     <script src="/static/socketEvents.js"></script>
+    <script src="/static/thumbnailLoader.js"></script>
     <script src="/static/messageUtils.js"></script>
     <script src="/static/chatInput.js"></script>
     <script src="/static/file_share.js"></script>
-    <script src="/static/polls.js"></script>
     <script src="/static/effects.js"></script>
     <script src="/static/userSettings.js"></script>
-    <script src="/static/channels.js"></script>
-    <script src="/static/lib/livekit-client.umd.js.map"></script>
-</body>
-</html>
+     <script src="/static/channels.js"></script>
+     <script src="/static/media.js"></script>
+     <script src="/static/adventure.js"></script>
+     <script src="/static/dice.js"></script>
+ </body>
+ </html>

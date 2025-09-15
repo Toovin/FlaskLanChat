@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN Chat</title>
+    <link rel="stylesheet" href="/static/lib/all.min.css">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/login.css">
+    <link rel="stylesheet" href="/static/css/viewers.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/modals.css">
+    <link rel="stylesheet" href="/static/css/members.css">
+    <link rel="stylesheet" href="/static/css/reactions.css">
+    <link rel="stylesheet" href="/static/css/polls.css">
+    <link rel="stylesheet" href="/static/css/effects.css">
+    <link rel="stylesheet" href="/static/css/user-settings.css">
+</head>
+<body>
+    <div id="error-message" style="display: none; position: fixed; top: 10px; right: 10px; background: #dc3545; color: white; padding: 10px; border-radius: 4px; z-index: 1000;"></div>
+
+    <div id="login-modal" class="modal">
+        <div class="login-background"></div>
+        <div class="modal-content">
+            <h2>Welcome to LAN Chat</h2>
+            <p>Sign in or create an account</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username-input">Username</label>
+                    <input type="text" id="username-input" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password-input">Password</label>
+                    <input type="password" id="password-input" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="avatar-input">Avatar (optional)</label>
+                    <input type="file" id="avatar-input" name="avatar" accept="image/*">
+                </div>
+                <div class="form-actions button-container">
+                    <button type="submit" id="login-button">Sign In</button>
+                    <button type="submit" id="register-button">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="loading-spinner" class="spinner">Loading...</div>
+
+    <div id="image-gen-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Generate Image</h2>
+            <form id="image-gen-form" action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="prompt-input">Prompt</label>
+                    <input type="text" id="prompt-input" name="prompt" placeholder="Enter image description">
+                </div>
+                <div class="form-group">
+                    <label for="batch-size-input">Batch Size (1–4)</label>
+                    <input type="number" id="batch-size-input" name="batch_size" min="1" max="4" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="width-input">Width</label>
+                    <input type="number" id="width-input" name="width" value="1024">
+                </div>
+                <div class="form-group">
+                    <label for="height-input">Height</label>
+                    <input type="number" id="height-input" name="height" value="1024">
+                </div>
+                <div class="form-group">
+                    <label for="steps-input">Steps</label>
+                    <input type="number" id="steps-input" name="steps" value="33">
+                </div>
+                <div class="form-group">
+                    <label for="cfg-scale-input">CFG Scale</label>
+                    <input type="number" id="cfg-scale-input" name="cfg_scale" step="0.1" value="7">
+                </div>
+                <div class="form-group">
+                    <label for="clip-skip-input">Clip Skip</label>
+                    <input type="number" id="clip-skip-input" name="clip_skip" value="2">
+                </div>
+                <div class="form-group">
+                    <label for="negative-prompt-input">Negative Prompt</label>
+                    <input type="text" id="negative-prompt-input" name="negative_prompt" placeholder="Enter negative prompt">
+                </div>
+                <div class="form-group">
+                    <label for="sampler-name-input">Sampler</label>
+                    <select id="sampler-name-input" name="sampler_name"></select>
+                </div>
+                <div class="form-group">
+                    <label for="scheduler-name-input">Scheduler</label>
+                    <select id="scheduler-name-input" name="scheduler_name"></select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Generate Image</button>
+                    <button type="button" class="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="poll-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Create Poll</h2>
+            <form id="poll-form" action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="poll-question-input">Question</label>
+                    <input type="text" id="poll-question-input" name="question" placeholder="What's your question?" required>
+                </div>
+                <div class="form-group">
+                    <label>Options</label>
+                    <div id="poll-options-container">
+                        <div class="poll-option-input">
+                            <input type="text" placeholder="Option 1" required>
+                            <button type="button" class="remove-option-btn" style="display: none;">&times;</button>
+                        </div>
+                        <div class="poll-option-input">
+                            <input type="text" placeholder="Option 2" required>
+                            <button type="button" class="remove-option-btn" style="display: none;">&times;</button>
+                        </div>
+                    </div>
+                    <button type="button" id="add-option-btn">+ Add Option</button>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Create Poll</button>
+                    <button type="button" class="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="create-channel-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Create Channel</h2>
+            <form id="create-channel-form" action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="channel-name-input">Channel Name</label>
+                    <input type="text" id="channel-name-input" name="name" placeholder="Enter channel name" required>
+                    <small>Channel names must be lowercase and contain no spaces</small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Create Channel</button>
+                    <button type="button" class="cancel-button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="dice-modal" class="modal" style="display: none;">
+        <div class="modal-content dice-modal-content">
+            <button class="close-modal" onclick="closeDiceModal()">&times;</button>
+            <h2>🎲 Roll Dice</h2>
+            
+            <div class="dice-tabs">
+                <div class="dice-tab active" data-tab="standard">Standard D&D</div>
+                <div class="dice-tab" data-tab="custom">Custom</div>
+            </div>
+            
+            <div id="dice-tab-standard" class="dice-tab-content">
+                <div class="dice-grid">
+                    <button class="dice-btn" data-sides="4">
+                        <span class="dice-icon">🔶</span>
+                        <span class="dice-label">d4</span>
+                    </button>
+                    <button class="dice-btn" data-sides="6">
+                        <span class="dice-icon">⚁</span>
+                        <span class="dice-label">d6</span>
+                    </button>
+                    <button class="dice-btn" data-sides="8">
+                        <span class="dice-icon">🔸</span>
+                        <span class="dice-label">d8</span>
+                    </button>
+                    <button class="dice-btn" data-sides="10">
+                        <span class="dice-icon">🔟</span>
+                        <span class="dice-label">d10</span>
+                    </button>
+                    <button class="dice-btn" data-sides="100">
+                        <span class="dice-icon">💯</span>
+                        <span class="dice-label">d10%</span>
+                    </button>
+                    <button class="dice-btn" data-sides="12">
+                        <span class="dice-icon">🔷</span>
+                        <span class="dice-label">d12</span>
+                    </button>
+                    <button class="dice-btn" data-sides="20">
+                        <span class="dice-icon">🎲</span>
+                        <span class="dice-label">d20</span>
+                    </button>
+                </div>
+                
+                <div class="dice-options">
+                    <div class="form-group">
+                        <label for="dice-count">Number of Dice</label>
+                        <input type="number" id="dice-count" min="1" max="20" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="dice-modifier">Modifier</label>
+                        <input type="number" id="dice-modifier" value="0" placeholder="+/-">
+                    </div>
+                </div>
+            </div>
+            
+            <div id="dice-tab-custom" class="dice-tab-content" style="display: none;">
+                <div class="form-group">
+                    <label for="custom-dice-sides">Number of Sides</label>
+                    <input type="number" id="custom-dice-sides" min="2" max="1000" value="20">
+                </div>
+                <div class="form-group">
+                    <label for="custom-dice-count">Number of Dice</label>
+                    <input type="number" id="custom-dice-count" min="1" max="20" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="custom-dice-modifier">Modifier</label>
+                    <input type="number" id="custom-dice-modifier" value="0" placeholder="+/-">
+                </div>
+                <button class="roll-custom-dice-btn">Roll Custom Dice</button>
+            </div>
+            
+            <div class="current-roll" style="display: none;">
+                <h3>Current Roll:</h3>
+                <div class="roll-display">
+                    <span class="roll-formula"></span>
+                    <span class="roll-result"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-settings-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeUserSettings()">&times;</button>
+            <h2>User Settings</h2>
+            
+            <div class="settings-tabs">
+                <div class="settings-tab active" data-tab="profile">Profile</div>
+                <div class="settings-tab" data-tab="appearance">Appearance</div>
+                <div class="settings-tab" data-tab="privacy">Privacy</div>
+            </div>
+            
+            <div id="settings-tab-profile" class="settings-tab-content">
+                <div class="form-group">
+                    <label>Current Avatar</label>
+                    <div class="avatar-preview">
+                        <img id="settings-current-avatar" src="/static/avatars/smile_1.png" alt="Current Avatar">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="settings-avatar-input">Upload New Avatar</label>
+                    <input type="file" id="settings-avatar-input" accept="image/*">
+                    <small>Recommended: Square image, max 5MB</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="settings-display-name">Display Name</label>
+                    <input type="text" id="settings-display-name" placeholder="Your display name">
+                    <small>This is how others see your name</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="settings-status">Status</label>
+                    <select id="settings-status">
+                        <option value="online">Online</option>
+                        <option value="away">Away</option>
+                        <option value="busy">Do Not Disturb</option>
+                        <option value="invisible">Invisible</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="settings-custom-status">Custom Status</label>
+                    <input type="text" id="settings-custom-status" placeholder="What's happening?" maxlength="100">
+                </div>
+            </div>
+            
+            <div id="settings-tab-appearance" class="settings-tab-content" style="display: none;">
+                <div class="form-group">
+                    <label>Theme</label>
+                    <div class="theme-options">
+                        <div class="theme-option" data-theme="dark">
+                            <div class="theme-preview dark-theme"></div>
+                            <span>Dark</span>
+                        </div>
+                        <div class="theme-option active" data-theme="darker">
+                            <div class="theme-preview darker-theme"></div>
+                            <span>Darker</span>
+                        </div>
+                        <div class="theme-option" data-theme="blue">
+                            <div class="theme-preview blue-theme"></div>
+                            <span>Ocean Blue</span>
+                        </div>
+                        <div class="theme-option" data-theme="forest">
+                            <div class="theme-preview forest-theme"></div>
+                            <span>Forest</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset">
+                            <div class="theme-preview sunset-theme"></div>
+                            <span>Sunset</span>
+                        </div>
+                        <div class="theme-option" data-theme="custom">
+                            <div class="theme-preview custom-theme"></div>
+                            <span>Custom</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="custom-theme-section" style="display: none;">
+                    <label>Custom Color Palette</label>
+                    <div class="custom-colors">
+                        <div class="color-group">
+                            <label for="primary-bg-color">Primary Background</label>
+                            <input type="color" id="primary-bg-color" value="#000000">
+                        </div>
+                        <div class="color-group">
+                            <label for="secondary-bg-color">Secondary Background</label>
+                            <input type="color" id="secondary-bg-color" value="#333333">
+                        </div>
+                        <div class="color-group">
+                            <label for="accent-color">Accent Color</label>
+                            <input type="color" id="accent-color" value="#6b6b6b">
+                        </div>
+                        <div class="color-group">
+                            <label for="text-primary-color">Primary Text</label>
+                            <input type="color" id="text-primary-color" value="#ffffff">
+                        </div>
+                        <div class="color-group">
+                            <label for="text-secondary-color">Secondary Text</label>
+                            <input type="color" id="text-secondary-color" value="#e6f7ff">
+                        </div>
+                        <div class="color-group">
+                            <label for="border-color">Border Color</label>
+                            <input type="color" id="border-color" value="#33aa33">
+                        </div>
+                    </div>
+                    <div class="custom-theme-actions">
+                        <button type="button" id="preview-custom-theme" class="preview-btn">Preview</button>
+                        <button type="button" id="reset-custom-theme" class="reset-btn">Reset to Default</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-compact-mode"> 
+                        Compact Mode
+                    </label>
+                    <small>Show more messages on screen</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-show-timestamps"> 
+                        Show Timestamps
+                    </label>
+                    <small>Display message timestamps</small>
+                </div>
+            </div>
+            
+            <div id="settings-tab-privacy" class="settings-tab-content" style="display: none;">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-allow-dms"> 
+                        Allow Direct Messages
+                    </label>
+                    <small>Let other users send you private messages</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-show-online-status"> 
+                        Show Online Status
+                    </label>
+                    <small>Let others see when you're online</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="settings-typing-indicators"> 
+                        Send Typing Indicators
+                    </label>
+                    <small>Let others know when you're typing</small>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button type="button" class="save-settings-btn">Save Changes</button>
+                <button type="button" class="cancel-button" onclick="closeUserSettings()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>LAN Chat</h1>
+                <div class="user-info">
+                    <div class="avatar">
+                        <img src="/static/avatars/smile_1.png" alt="User Avatar">
+                    </div>
+                    <div class="user-details">
+                        <span class="username">Guest</span>
+                        <span class="status">Online</span>
+                    </div>
+                    <button class="settings-btn" onclick="openUserSettings()" title="User Settings">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="channel-category">
+                <div class="category-header">
+                    <h3>TEXT CHANNELS</h3>
+                    <button class="add-channel-btn" onclick="showCreateChannelModal()" title="Create Channel">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="channels-list">
+                    <div class="channel active" data-channel="general">
+                        <i class="fas fa-hashtag"></i><span>general</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tabs">
+                <div class="tab active" data-tab="channel">
+                    <span>general</span>
+                    <div class="channel-description">general discussion channel</div>
+                </div>
+                <div class="tab" data-tab="file-share">
+                    <span>File Share</span>
+                </div>
+            </div>
+
+            <div id="tab-content-channel" class="tab-content">
+                <div id="messages-container" class="messages-container">
+                    <div class="welcome-message">
+                        <h2>Sometimes things break.</h2>
+                        <h2>Sometimes they get better.</h2>
+                    </div>
+                </div>
+                <button id="new-messages-button" style="display: none;">New Messages</button>
+                <div class="chat-input-container">
+                    <div id="typing-indicator-bar" style="display: none;">
+                        <span id="typing-text"></span>
+                    </div>
+                    <div class="reply-bar" style="display: none;"></div>
+                    <div class="input-wrapper">
+                        <textarea class="message-input" placeholder="Message #general"></textarea>
+                        <div class="input-actions">
+                            <input type="file" id="chat-file-upload-input" multiple style="display: none;" accept="image/png,image/webp,image/jpeg,image/gif,application/pdf,.doc,.docx,text/plain,.md,video/mp4,video/webm,video/avi,video/quicktime">
+                            <button class="action-btn send-image-btn"><i class="fas fa-paper-plane"></i></button>
+                            <button class="action-btn upload-btn"><i class="fas fa-upload"></i></button>
+                            <button class="action-btn poll-btn"><i class="fas fa-poll"></i> Poll</button>
+                            <button class="action-btn dice-btn"><i class="fas fa-dice"></i> Dice</button>
+                            <button class="action-btn voice-btn"><i class="fas fa-microphone"></i> Join Voice</button>
+                            <label class="auto-scroll-label">
+                                <input type="checkbox" id="auto-scroll-checkbox"> Auto-Scroll
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-content-file-share" class="tab-content" style="display: none;">
+                <div class="file-share-container">
+                    <button class="upload-btn">Upload</button>
+                    <input type="file" id="file-share-upload-input" multiple style="display: none;">
+                    <div class="file-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="members-sidebar">
+            <div class="member-header">
+                <h3>MEMBERS - 0</h3>
+            </div>
+            <div class="member-group">
+                <div class="member">
+                    <div class="member-avatar">
+                        <img src="/static/avatars/smile_1.png" alt="Avatar">
+                        <div class="status-dot online"></div>
+                    </div>
+                    <div class="member-info">
+                        <span class="member-name">Username</span>
+                        <span class="member-status">Online</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/lib/socket.io.min.js"></script>
+    <script src="/static/lib/moment.min.js"></script>
+    <script src="/static/lib/livekit-client.umd.min.js"></script>
+    <script src="/static/core.js"></script>
+    <script src="/static/viewers.js"></script>
+    <script src="/static/login.js"></script>
+    <script src="/static/socketEvents.js"></script>
+    <script src="/static/messageUtils.js"></script>
+    <script src="/static/chatInput.js"></script>
+    <script src="/static/file_share.js"></script>
+    <script src="/static/polls.js"></script>
+    <script src="/static/effects.js"></script>
+    <script src="/static/userSettings.js"></script>
+    <script src="/static/channels.js"></script>
+    <script src="/static/dice.js"></script>
+    <script src="/static/lib/livekit-client.umd.js.map"></script>
+</body>
+</html>

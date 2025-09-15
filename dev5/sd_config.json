@@ -1,5 +1,5 @@
 {
-    "sd_api_url": "http://127.0.0.1:7860",
+    "sd_api_url": "http://YOUR_SD_SERVER_IP:7872",
     "default_width": 1024,
     "default_height": 1024,
     "default_steps": 35,

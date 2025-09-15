@@ -123,6 +123,10 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.light-theme {
+    background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+}
+
 .dark-theme {
     background: linear-gradient(135deg, #36393f 0%, #2f3136 100%);
 }
@@ -132,19 +136,27 @@
 }
 
 .blue-theme {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    background: linear-gradient(135deg, #0f1419 0%, #1c1f23 100%);
 }
 
-.forest-theme {
-    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+.purple-theme {
+    background: linear-gradient(135deg, #1a0d2e 0%, #2a1b3d 100%);
 }
 
-.sunset-theme {
-    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%);
+.retro-green-theme {
+    background: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
 }
 
-.custom-theme {
-    background: linear-gradient(135deg, var(--custom-bg-primary, #000000) 0%, var(--custom-bg-secondary, #333333) 100%);
+.ice-blue-theme {
+    background: linear-gradient(135deg, #0a1929 0%, #1a2332 100%);
+}
+
+.pika-yellow-theme {
+    background: linear-gradient(135deg, #1a1a00 0%, #2a2a00 100%);
+}
+
+.nature-theme {
+    background: linear-gradient(135deg, #0d1b0d 0%, #1a2f1a 100%);
 }
 
 /* Form Elements */
@@ -229,6 +241,33 @@
     cursor: not-allowed;
 }
 
+/* Retro Green Theme - Override save button and active tab colors */
+.theme-retro-green .save-settings-btn {
+    background-color: #000000;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+}
+
+.theme-retro-green .save-settings-btn:hover {
+    background-color: #00ff00;
+    color: #000000;
+}
+
+.theme-retro-green .settings-tab.active {
+    color: #ffffff; /* White text for better contrast */
+    border-bottom-color: #00ff00;
+}
+
+.theme-darker .settings-tab.active {
+    color: #ffffff; /* White text for better contrast on gold */
+    border-bottom-color: var(--accent);
+}
+
+.theme-pika-yellow .settings-tab.active {
+    color: #000000; /* Black text for contrast on yellow */
+    border-bottom-color: var(--accent);
+}
+
 .cancel-button {
     background-color: transparent;
     color: var(--text-muted);
@@ -251,24 +290,24 @@
         margin: 10px auto;
         padding: 16px;
     }
-    
+
     .settings-tabs {
         overflow-x: auto;
         white-space: nowrap;
     }
-    
+
     .settings-tab {
         flex-shrink: 0;
     }
-    
+
     .theme-options {
         justify-content: center;
     }
-    
+
     .settings-actions {
         flex-direction: column-reverse;
     }
-    
+
     .save-settings-btn,
     .cancel-button {
         width: 100%;
@@ -317,85 +356,4 @@
     background-color: rgba(240, 71, 71, 0.1);
     color: #f04747;
     border: 1px solid rgba(240, 71, 71, 0.3);
-}
-
-/* Custom Color Palette Section */
-.custom-colors {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-top: 12px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.02);
-}
-
-.color-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.color-group label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-muted);
-    margin-bottom: 0;
-}
-
-.color-group input[type="color"] {
-    width: 100%;
-    height: 40px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: none;
-    cursor: pointer;
-    padding: 2px;
-}
-
-.color-group input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 0;
-}
-
-.color-group input[type="color"]::-webkit-color-swatch {
-    border: none;
-    border-radius: 2px;
-}
-
-.custom-theme-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    justify-content: flex-end;
-}
-
-.preview-btn, .reset-btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.preview-btn {
-    background-color: var(--accent);
-    color: white;
-    border: none;
-}
-
-.preview-btn:hover {
-    background-color: var(--accent-hover);
-}
-
-.reset-btn {
-    background-color: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-}
-
-.reset-btn:hover {
-    color: var(--text-primary);
-    border-color: var(--text-muted);
 }

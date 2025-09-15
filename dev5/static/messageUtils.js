@@ -1,6 +1,35 @@
 let scrollTimeout;
 let modalData = null;
 
+function loadLazyMedia(element) {
+    const mediaUrl = element.dataset.mediaUrl;
+    const mediaType = element.dataset.mediaType;
+    const videoExt = element.dataset.videoExt;
+
+    if (!mediaUrl || !mediaType) {
+        console.error('Missing media URL or type:', { mediaUrl, mediaType });
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Missing media info</span></div>';
+        element.classList.remove('loading');
+        return;
+    }
+
+    element.classList.add('loading');
+    const placeholder = element.querySelector('.media-placeholder');
+    if (placeholder) {
+        placeholder.innerHTML = '<i class="fas fa-spinner fa-2x"></i><span>Loading...</span>';
+    }
+
+    if (mediaType === 'image') {
+        loadLazyImage(element, mediaUrl);
+    } else if (mediaType === 'video') {
+        loadLazyVideo(element, mediaUrl, videoExt);
+    } else {
+        console.error('Unsupported media type:', mediaType);
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Unsupported media type</span></div>';
+        element.classList.remove('loading');
+    }
+}
+
 function scrollMessagesToTop(force = false) {
     const messagesContainer = document.getElementById('messages-container');
     if (!messagesContainer) {
@@ -25,17 +54,27 @@ function scrollMessagesToBottom(force = false) {
         return;
     }
     clearTimeout(scrollTimeout);
+
     requestAnimationFrame(() => {
-        messagesContainer.scrollTo({
-            top: messagesContainer.scrollHeight,
-            behavior: force ? 'instant' : 'smooth'
-        });
-        const newMessagesButton = document.getElementById('new-messages-button');
-        if (newMessagesButton) newMessagesButton.style.display = 'none';
+        messagesContainer.style.overflowY = 'hidden';
+        void messagesContainer.offsetHeight;
+        messagesContainer.style.overflowY = 'auto';
+
+        setTimeout(() => {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: force ? 'instant' : 'smooth'
+            });
+
+            console.log('Scrolled to bottom:', messagesContainer.scrollHeight);
+
+            const newMessagesButton = document.getElementById('new-messages-button');
+            if (newMessagesButton) newMessagesButton.style.display = 'none';
+        }, 50);
     });
 }
 
-async function addMessage(sender, text, isMedia, timestamp, isTemp = false, messageId = null, repliedTo = null) {
+async function addMessage(sender, text, isMedia, timestamp, isTemp = false, messageId = null, repliedTo = null, repliesCount = 0, imageUrl = null, thumbnailUrl = null) {
     const messagesContainer = document.getElementById('messages-container');
     if (!messagesContainer) {
         console.error('messages-container not found in DOM.');
@@ -43,12 +82,15 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
     }
     const messageGroup = document.createElement('div');
     messageGroup.className = 'message-group';
+    messageGroup.style.position = 'relative';
     if (isTemp) messageGroup.classList.add('temp');
     if (messageId) messageGroup.dataset.messageId = messageId;
+
     const user = users_db.find(u => u.username === sender);
     const avatarOptions = ['smile_1.png', 'smile_2.png', 'smile_3.png'];
     const randomAvatar = avatarOptions[Math.floor(Math.random() * avatarOptions.length)];
     const avatarUrl = user && user.avatar_url ? user.avatar_url : `/static/avatars/${randomAvatar}`;
+
     let replyIndicator = '';
     if (repliedTo) {
         const repliedMessage = await getMessageById(repliedTo);
@@ -60,76 +102,125 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
                 <span>Replying to ${escapeHtml(repliedSender)}: ${repliedText}</span>
             </div>`;
     }
+    let repliesIndicator = '';
+    if (repliesCount > 0) {
+        repliesIndicator = `<div class="replies-indicator"><i class="fas fa-reply"></i> ${repliesCount} ${repliesCount === 1 ? 'reply' : 'replies'}</div>`;
+    }
+
     let parsedText = text;
     let attachments = [];
+
     if (isMedia) {
-        try {
-            const parsed = JSON.parse(text);
-            parsedText = parsed.text || '';
-            attachments = parsed.attachments || [];
-        } catch {
-            attachments = [text];
+        // First try to parse JSON format (new format with attachments)
+        if (typeof text === 'string') {
+            try {
+                const parsed = JSON.parse(text);
+                parsedText = parsed.text || '';
+                attachments = Array.isArray(parsed.attachments) ? parsed.attachments.filter(att =>
+                    att && att.url && typeof att.url === 'string' &&
+                    (att.thumbnail_url === null || att.thumbnail_url === undefined ||
+                     (typeof att.thumbnail_url === 'string' && att.thumbnail_url.trim()))
+                ).map(att => ({
+                    url: att.url,
+                    thumbnail_url: att.thumbnail_url || null,
+                    size: att.size || 0
+                })) : [];
+            } catch (e) {
+                // Not JSON, fall back to legacy format
+                parsedText = text || '';
+                if (imageUrl && thumbnailUrl && typeof imageUrl === 'string' && typeof thumbnailUrl === 'string') {
+                    attachments = [{ url: imageUrl, thumbnail_url: thumbnailUrl }];
+                } else if (imageUrl && typeof imageUrl === 'string') {
+                    // Handle case where thumbnail_url is null but image_url is valid (e.g., videos)
+                    attachments = [{ url: imageUrl, thumbnail_url: thumbnailUrl || null }];
+                } else {
+                    console.warn('No valid image_url or thumbnail_url, treating as text message');
+                    isMedia = false; // Override to prevent media rendering
+                }
+            }
+        } else if (typeof text === 'object' && text.image_url && text.thumbnail_url && typeof text.image_url === 'string' && typeof text.thumbnail_url === 'string') {
+            // Legacy object format
+            parsedText = text.message || '';
+            attachments = [{ url: text.image_url, thumbnail_url: text.thumbnail_url }];
+        } else if (typeof text === 'object' && text.image_url && typeof text.image_url === 'string') {
+            // Handle legacy object format with null thumbnail_url
+            parsedText = text.message || '';
+            attachments = [{ url: text.image_url, thumbnail_url: text.thumbnail_url || null }];
+        } else {
+            console.error('Invalid media message format:', JSON.stringify(text, null, 2));
+            showError('Invalid media message received.');
+            return;
         }
     }
-    let messageContent = `<div class="message-text${parsedText.startsWith('!') ? ' command' : ''}">${escapeHtml(parsedText)}</div>`;
-    if (attachments.length > 0) {
+
+    let messageContent = `<div class="message-text${String(parsedText).startsWith('!') ? ' command' : ''}">${escapeHtml(String(parsedText))}</div>`;
+
+    if (isMedia && attachments.length > 0) {
         if (attachments.length === 1) {
-            const ext = attachments[0].split('.').pop().toLowerCase();
-            const imageExtensions = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'];
-            const videoExtensions = ['mp4', 'webm', 'avi', 'mov'];
-            const documentExtensions = ['pdf', 'doc', 'docx', 'txt', 'md', 'zip'];
-            if (imageExtensions.includes(ext)) {
-                messageContent += `<div class="message-image"><img src="${escapeHtml(attachments[0])}" alt="Shared image" style="max-width: 300px; max-height: 200px; object-fit: contain; border-radius: 8px;"></div>`;
-            } else if (videoExtensions.includes(ext)) {
-                let shouldLoop = false;
-                try {
-                    const video = document.createElement('video');
-                    video.src = attachments[0];
-                    video.onloadedmetadata = () => {
-                        if (video.duration < 60) shouldLoop = true;
-                        video.remove();
-                    };
-                    video.onerror = () => {};
-                    video.load();
-                } catch (error) {
-                    console.error('Error checking video duration:', error);
-                }
-                messageContent += `
-                    <div class="message-video">
-                        <video controls autoplay muted ${shouldLoop ? 'loop' : ''} style="max-width: 300px; max-height: 200px; border-radius: 8px;">
-                            <source src="${escapeHtml(attachments[0])}" type="video/${ext === 'mov' ? 'quicktime' : ext}">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>`;
-            } else if (documentExtensions.includes(ext)) {
-                const iconMap = {
-                    'pdf': 'fa-file-pdf',
-                    'doc': 'fa-file-word',
-                    'docx': 'fa-file-word',
-                    'txt': 'fa-file-alt',
-                    'md': 'fa-file-code'
-                };
-                const iconClass = iconMap[ext] || 'fa-file';
-                const fileName = attachments[0].split('/').pop();
+            const att = attachments[0];
+            const url = att.url;
+            if (!url || typeof url !== 'string') {
+                console.error('Invalid attachment: URL is missing or invalid', att);
                 messageContent += `
                     <div class="message-file">
-                        <i class="fas ${iconClass} fa-2x"></i>
-                        <a href="${escapeHtml(attachments[0])}" target="_blank" class="file-link">${escapeHtml(fileName)}</a>
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        <span>Invalid attachment</span>
                     </div>`;
             } else {
-                const fileName = attachments[0].split('/').pop();
-                messageContent += `
-                    <div class="message-file">
-                        <i class="fas fa-file fa-2x"></i>
-                        <a href="${escapeHtml(attachments[0])}" target="_blank" class="file-link">${escapeHtml(fileName)}</a>
-                    </div>`;
+                // Construct thumbnail URL with proper subdirectory structure
+                let thumbnailUrl = att.thumbnail_url;
+                if (!thumbnailUrl) {
+                    // Fallback: replace /static/{dir}/ with /static/thumbnails/{dir}/ and add _thumb.jpg
+                    const urlParts = url.split('/');
+                    if (urlParts.length >= 3 && urlParts[1] === 'static') {
+                        const storageDir = urlParts[2]; // e.g., 'uploads', 'media_downloaded'
+                        const filename = urlParts[urlParts.length - 1];
+                        const baseName = filename.replace(/\.[^.]+$/, '');
+                        thumbnailUrl = `/static/thumbnails/${storageDir}/${baseName}_thumb.jpg`;
+                    } else {
+                        // Fallback to old pattern if URL structure is unexpected
+                        thumbnailUrl = url.replace('/static/', '/static/thumbnails/').replace(/\.[^.]+$/, '_thumb.jpg');
+                    }
+                }
+
+                // Handle both old and new thumbnail URL formats for backward compatibility
+                if (thumbnailUrl && !thumbnailUrl.includes('/uploads/') && url.includes('/uploads/')) {
+                    // Old format: add /uploads/ to match the full image path
+                    thumbnailUrl = thumbnailUrl.replace('/static/thumbnails/', '/static/thumbnails/uploads/');
+                }
+                const ext = url.split('.').pop().toLowerCase();
+                const imageExtensions = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'];
+                const videoExtensions = ['mp4', 'webm', 'avi', 'mov'];
+                const documentExtensions = ['pdf', 'doc', 'docx', 'txt', 'md', 'zip'];
+
+                if (imageExtensions.includes(ext)) {
+                    messageContent += `
+                        <div class="message-image" data-full-url="${escapeHtml(url)}" data-thumbnail-url="${escapeHtml(thumbnailUrl)}">
+                            <div class="media-placeholder">
+                                <i class="fas fa-image fa-2x"></i>
+                                <span>Loading thumbnail...</span>
+                            </div>
+                        </div>`;
+                } else if (videoExtensions.includes(ext)) {
+                    const lazyUrl = url.replace('/static/', '/lazy-file/');
+                    const size = att.size || 0;
+                    messageContent += `
+                        <div class="message-video lazy-media" data-media-url="${escapeHtml(lazyUrl)}" data-media-type="video" data-video-ext="${ext}" data-size="${size}">
+                            <div class="media-placeholder">
+                                <i class="fas fa-video fa-2x"></i>
+                                <span>Click to load video${size > 0 ? ` (${(size / (1024 * 1024)).toFixed(1)}MB)` : ''}</span>
+                            </div>
+                        </div>`;
+                }
             }
         } else {
             messageContent += createCarousel(attachments, messageId);
         }
     }
+
     const isOwnMessage = sender === currentUsername;
     const deleteButton = isOwnMessage ? `<button class="action-btn delete-btn" aria-label="Delete message"><i class="fas fa-trash"></i></button>` : '';
+
     messageGroup.innerHTML = `
         <div class="message-avatar">
             <img src="${avatarUrl}" alt="Avatar">
@@ -140,6 +231,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
                 <span class="username">${escapeHtml(sender)}</span>
                 <span class="timestamp">${timestamp ? moment(timestamp).format('MMM D, YYYY h:mm A') : 'Just now'}</span>
             </div>
+            ${repliesIndicator}
             ${messageContent}
             <div class="message-actions">
                 <div class="reactions-container"></div>
@@ -149,21 +241,33 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
             </div>
         </div>
     `;
+
     const messages = Array.from(messagesContainer.children);
     const timestampMoment = timestamp ? moment(timestamp) : moment();
     let inserted = false;
+
     for (let i = 0; i < messages.length; i++) {
         const existingMessage = messages[i];
         const existingTimestamp = existingMessage.querySelector('.timestamp')?.textContent;
-        const existingMoment = existingTimestamp && existingTimestamp !== 'Just now' ? moment(existingTimestamp, 'MMM D, YYYY h:mm A') : moment();
+        const existingMoment = existingTimestamp && existingTimestamp !== 'Just now'
+            ? moment(existingTimestamp, 'MMM D, YYYY h:mm A')
+            : moment();
+
         if (timestampMoment.isBefore(existingMoment)) {
             messagesContainer.insertBefore(messageGroup, existingMessage);
             inserted = true;
             break;
         }
     }
-    if (!inserted) messagesContainer.appendChild(messageGroup);
-    if (isTemp || autoScrollEnabled) scrollMessagesToBottom(true);
+
+    if (!inserted) {
+        messagesContainer.appendChild(messageGroup);
+    }
+
+    if (isTemp || autoScrollEnabled) {
+        scrollMessagesToBottom(true);
+    }
+
     const addReactionBtn = messageGroup.querySelector('.add-reaction-btn');
     if (addReactionBtn && messageId) {
         console.log('Binding click event to add-reaction-btn for message:', messageId);
@@ -174,6 +278,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
     } else {
         console.warn('Failed to bind add-reaction-btn:', { addReactionBtn, messageId });
     }
+
     const replyBtn = messageGroup.querySelector('.reply-btn');
     if (replyBtn && messageId) {
         replyBtn.addEventListener('click', () => {
@@ -184,7 +289,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
                 messageInput.dataset.replyTo = messageId;
                 replyBar.innerHTML = `
                     <span>Replying to ${escapeHtml(sender)}</span>
-                    <button class="cancel-reply-btn" aria-label="Cancel reply">&times;</button>
+                    <button class="cancel-reply-btn" aria-label="Cancel reply"><i class="fas fa-times"></i></button>
                 `;
                 replyBar.style.display = 'flex';
                 const cancelReplyBtn = replyBar.querySelector('.cancel-reply-btn');
@@ -199,6 +304,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
             }
         });
     }
+
     const deleteBtn = messageGroup.querySelector('.delete-btn');
     if (deleteBtn && messageId) {
         deleteBtn.addEventListener('click', () => {
@@ -208,16 +314,18 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
             });
         });
     }
-    if (attachments.length === 1) {
+
+    if (attachments.length > 0) {
         const imgElement = messageGroup.querySelector('.message-image img');
         if (imgElement && messageId) {
-            const cleanSrc = imgElement.src.replace(/[\n\r]/g, ''); // Remove newlines
+            const cleanSrc = imgElement.src.replace(/[\n\r]/g, '');
             console.log('Binding image click for src:', cleanSrc);
             imgElement.addEventListener('click', () => {
                 console.log('Opening image viewer with src:', cleanSrc);
                 openImageViewer(cleanSrc);
             });
         }
+
         const videoElement = messageGroup.querySelector('.message-video video');
         if (videoElement && messageId) {
             const cleanSrc = videoElement.src.replace(/[\n\r]/g, '');
@@ -228,6 +336,7 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
             });
         }
     }
+
     const replyIndicatorEl = messageGroup.querySelector('.reply-indicator');
     if (replyIndicatorEl && repliedTo) {
         replyIndicatorEl.addEventListener('click', (e) => {
@@ -235,10 +344,386 @@ async function addMessage(sender, text, isMedia, timestamp, isTemp = false, mess
             scrollToMessage(repliedTo);
         });
     }
+
     if (messageId) {
         socket.emit('get_reactions', { message_id: messageId, channel: currentChannel });
     }
+
+    requestAnimationFrame(() => setupLazyMediaLoading(messageGroup));
 }
+
+function setupLazyMediaLoading(messageGroup) {
+    // Handle automatic loading for single images
+    const singleImageElements = messageGroup.querySelectorAll('.message-image');
+    singleImageElements.forEach(element => {
+        if (!element.classList.contains('lazy-media')) {
+            // This is a single image that should load automatically
+            const fullUrl = element.dataset.fullUrl;
+            const thumbnailUrl = element.dataset.thumbnailUrl;
+            if (fullUrl) {
+                setTimeout(() => loadSingleImage(element, fullUrl, thumbnailUrl), 10);
+            }
+        }
+    });
+
+    // Handle click-to-load for videos and other lazy media
+    const lazyMediaElements = messageGroup.querySelectorAll('.lazy-media');
+    lazyMediaElements.forEach(element => {
+        element.addEventListener('click', () => loadLazyMedia(element));
+    });
+}
+
+function loadSingleImage(element, fullUrl, thumbnailUrl) {
+    // Use the unified thumbnail loader
+    thumbnailLoader.loadSingleImage(element, fullUrl, thumbnailUrl, {
+        onClick: () => openImageViewer(fullUrl)
+    });
+}
+
+function loadLazyImage(element, mediaUrl) {
+    const thumbnailUrl = element.dataset.thumbnailUrl;
+    console.log(`Attempting to load thumbnail: ${thumbnailUrl}, full URL: ${mediaUrl}`);
+
+    if (thumbnailUrl) {
+        const thumbImg = new Image();
+        thumbImg.onload = () => {
+            console.log(`Thumbnail loaded successfully: ${thumbnailUrl}`);
+            element.innerHTML = `<img src="${thumbnailUrl}" alt="Shared image thumbnail" style="max-width: 300px; max-height: 200px; object-fit: contain; border-radius: 8px; cursor: pointer;" data-full-url="${mediaUrl}">`;
+            element.classList.remove('loading');
+            const imgElement = element.querySelector('img');
+            if (imgElement) {
+                imgElement.addEventListener('click', () => {
+                    loadFullResolutionImage(element, mediaUrl);
+                });
+            }
+        };
+        thumbImg.onerror = () => {
+            console.warn(`Thumbnail failed to load: ${thumbnailUrl}, falling back to full image`);
+            loadFullResolutionImage(element, mediaUrl);
+        };
+        thumbImg.src = thumbnailUrl;
+    } else {
+        console.warn(`No thumbnail URL for ${mediaUrl}, loading full image`);
+        loadFullResolutionImage(element, mediaUrl);
+    }
+}
+
+
+
+
+function loadCarouselImage(element, fullUrl, thumbnailUrl, index, attachments) {
+    console.log(`Loading carousel image: ${thumbnailUrl}, full: ${fullUrl}`);
+
+    if (thumbnailUrl) {
+        const thumbImg = new Image();
+        thumbImg.onload = () => {
+            console.log(`Carousel thumbnail loaded: ${thumbnailUrl}`);
+            element.innerHTML = `<img src="${thumbnailUrl}" alt="Carousel image thumbnail" style="max-width: 300px; max-height: 200px; object-fit: contain; border-radius: 8px; cursor: pointer;" data-full-url="${fullUrl}" data-index="${index}">`;
+            element.classList.remove('loading');
+
+            const imgElement = element.querySelector('img');
+            if (imgElement) {
+                imgElement.addEventListener('click', () => {
+                    // Get all image URLs from attachments for the viewer
+                    const allImageUrls = attachments
+                        .filter(att => {
+                            const url = typeof att === 'string' ? att : att.url;
+                            const ext = url.split('.').pop().toLowerCase();
+                            return ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext);
+                        })
+                        .map(att => typeof att === 'string' ? att : att.url);
+
+                    openImageViewer(allImageUrls, index);
+                });
+            }
+        };
+        thumbImg.onerror = () => {
+            console.warn(`Carousel thumbnail failed: ${thumbnailUrl}, loading full image`);
+            loadFullCarouselImage(element, fullUrl, index, attachments);
+        };
+        thumbImg.src = thumbnailUrl;
+    } else {
+        console.warn(`No thumbnail for carousel image: ${fullUrl}`);
+        loadFullCarouselImage(element, fullUrl, index, attachments);
+    }
+}
+
+function loadFullCarouselImage(element, fullUrl, index, attachments) {
+    const img = new Image();
+    img.onload = () => {
+        element.innerHTML = `<img src="${fullUrl}" alt="Carousel image" style="max-width: 300px; max-height: 200px; object-fit: contain; border-radius: 8px; cursor: pointer;" data-full-url="${fullUrl}" data-index="${index}">`;
+        element.classList.remove('loading');
+
+        const imgElement = element.querySelector('img');
+        if (imgElement) {
+            imgElement.addEventListener('click', () => {
+                // Get all image URLs from attachments for the viewer
+                const allImageUrls = attachments
+                    .filter(att => {
+                        const url = typeof att === 'string' ? att : att.url;
+                        const ext = url.split('.').pop().toLowerCase();
+                        return ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext);
+                    })
+                    .map(att => typeof att === 'string' ? att : att.url);
+
+                openImageViewer(allImageUrls, index);
+            });
+        }
+    };
+    img.onerror = () => {
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Failed to load image</span></div>';
+        element.classList.remove('loading');
+    };
+    img.src = fullUrl;
+}
+
+function loadFullSingleImage(element, fullUrl) {
+    const img = new Image();
+    img.onload = () => {
+        element.innerHTML = `<img src="${fullUrl}" alt="Shared image" style="max-width: 300px; max-height: 200px; object-fit: contain; border-radius: 8px; cursor: pointer;">`;
+        element.classList.remove('loading');
+
+        const imgElement = element.querySelector('img');
+        if (imgElement) {
+            imgElement.addEventListener('click', () => {
+                openImageViewer(fullUrl);
+            });
+        }
+    };
+    img.onerror = () => {
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Failed to load image</span></div>';
+        element.classList.remove('loading');
+    };
+    img.src = fullUrl;
+}
+
+function loadCarouselVideo(element, mediaUrl, videoExt, index, attachments) {
+    console.log(`Loading carousel video: ${mediaUrl}`);
+
+    const tempVideo = document.createElement('video');
+    tempVideo.src = mediaUrl;
+    tempVideo.onloadedmetadata = () => {
+        const shouldLoop = tempVideo.duration < 60;
+        tempVideo.remove();
+
+        element.innerHTML = `
+            <video controls autoplay muted ${shouldLoop ? 'loop' : ''} style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer;" data-index="${index}">
+                <source src="${mediaUrl}" type="video/${videoExt === 'mov' ? 'quicktime' : videoExt}">
+                Your browser does not support the video tag.
+            </video>`;
+        element.classList.remove('loading');
+
+        const videoElement = element.querySelector('video');
+        if (videoElement) {
+            videoElement.addEventListener('click', () => {
+                // Get all video URLs from attachments for the viewer
+                const allVideoUrls = attachments
+                    .filter(att => {
+                        const url = typeof att === 'string' ? att : att.url;
+                        const ext = url.split('.').pop().toLowerCase();
+                        return ['mp4', 'webm', 'avi', 'mov'].includes(ext);
+                    })
+                    .map(att => typeof att === 'string' ? att : att.url);
+
+                openVideoViewer(allVideoUrls, index);
+            });
+        }
+    };
+    tempVideo.onerror = () => {
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Failed to load video</span></div>';
+        element.classList.remove('loading');
+    };
+    tempVideo.load();
+}
+
+function createCarousel(attachments, messageId) {
+    if (!attachments || attachments.length === 0) return '';
+
+    let carouselHtml = '<div class="image-carousel">';
+
+    // Main image display
+    carouselHtml += '<div class="carousel-main-image">';
+    carouselHtml += '<img id="carousel-main-' + messageId + '" src="" alt="Carousel image" style="max-width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px;">';
+    carouselHtml += '</div>';
+
+    // Thumbnail strip
+    carouselHtml += '<div class="carousel-thumbnails">';
+    attachments.forEach((att, index) => {
+        // Use server-provided thumbnail URL if available, otherwise construct it
+        let thumbnailUrl = att.thumbnail_url;
+        if (!thumbnailUrl && att.url) {
+            // Construct thumbnail URL: replace /static/{dir}/ with /static/thumbnails/{dir}/ and add _thumb.jpg
+            const urlParts = att.url.split('/');
+            if (urlParts.length >= 3 && urlParts[1] === 'static') {
+                const storageDir = urlParts[2]; // e.g., 'uploads', 'media_downloaded'
+                const filename = urlParts[urlParts.length - 1];
+                const baseName = filename.replace(/\.[^.]+$/, '');
+                thumbnailUrl = `/static/thumbnails/${storageDir}/${baseName}_thumb.jpg`;
+            } else {
+                // Fallback to old pattern if URL structure is unexpected
+                thumbnailUrl = att.url.replace('/static/', '/static/thumbnails/').replace(/\.[^.]+$/, '_thumb.jpg');
+            }
+        }
+
+        // Handle both old and new thumbnail URL formats for backward compatibility
+        if (thumbnailUrl && !thumbnailUrl.includes('/uploads/') && att.url && att.url.includes('/uploads/')) {
+            // Old format: add /uploads/ to match the full image path
+            thumbnailUrl = thumbnailUrl.replace('/static/thumbnails/', '/static/thumbnails/uploads/');
+        }
+        // Final fallback to full image if thumbnail URL construction failed
+        if (!thumbnailUrl) {
+            thumbnailUrl = att.url;
+        }
+        carouselHtml += `<div class="carousel-thumb" data-index="${index}" data-full-url="${escapeHtml(att.url)}" data-thumb-url="${escapeHtml(thumbnailUrl)}">`;
+        carouselHtml += '<div class="thumb-placeholder loading">';
+        carouselHtml += '<i class="fas fa-image"></i>';
+        carouselHtml += '</div>';
+        carouselHtml += '</div>';
+    });
+    carouselHtml += '</div>';
+
+    carouselHtml += '</div>';
+
+    // Add carousel functionality after the HTML is inserted
+    setTimeout(() => {
+        setupCarousel(messageId, attachments);
+    }, 10);
+
+    return carouselHtml;
+}
+
+function setupCarousel(messageId, attachments) {
+    const mainImage = document.getElementById('carousel-main-' + messageId);
+    const thumbnails = document.querySelectorAll(`.carousel-thumb[data-index]`);
+
+    if (!mainImage || thumbnails.length === 0) return;
+
+    // Load first image by default
+    if (attachments.length > 0) {
+        loadCarouselImage(mainImage, attachments[0].url);
+    }
+
+    // Setup thumbnail click handlers
+    thumbnails.forEach((thumb, index) => {
+        const thumbPlaceholder = thumb.querySelector('.thumb-placeholder');
+        const att = attachments[index];
+
+        // Load thumbnail with fallback to full image
+        loadThumbImageWithFallback(thumbPlaceholder, att.url, att.thumbnail_url, index);
+
+        // Click handler
+        thumb.addEventListener('click', () => {
+            // Update main image
+            loadCarouselImage(mainImage, att.url);
+
+            // Update active thumbnail
+            document.querySelectorAll('.carousel-thumb').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        });
+    });
+
+    // Set first thumbnail as active
+    if (thumbnails.length > 0) {
+        thumbnails[0].classList.add('active');
+    }
+}
+
+function loadCarouselImage(imgElement, fullUrl, thumbnailUrl, index, attachments) {
+    // Use the unified thumbnail loader for carousel main image
+    thumbnailLoader.loadCarouselMainImage(imgElement, fullUrl, thumbnailUrl, {
+        onClick: () => {
+            // Get all image URLs from attachments for the viewer
+            const allImageUrls = attachments
+                .filter(att => {
+                    const url = typeof att === 'string' ? att : att.url;
+                    const ext = url.split('.').pop().toLowerCase();
+                    return ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext);
+                })
+                .map(att => typeof att === 'string' ? att : att.url);
+
+            openImageViewer(allImageUrls, index);
+        }
+    });
+}
+
+function loadThumbImageWithFallback(element, fullUrl, thumbnailUrl, index) {
+    // Use the unified thumbnail loader
+    thumbnailLoader.loadCarouselThumbnail(element, fullUrl, thumbnailUrl, index, {
+        onClick: () => {
+            // This will be handled by the carousel setup
+        }
+    });
+}
+
+function loadThumbImage(element, fullUrl, thumbnailUrl, index) {
+    // Use the unified thumbnail loader
+    thumbnailLoader.loadCarouselThumbnail(element, fullUrl, thumbnailUrl, index);
+}
+
+function loadFullResolutionImage(element, mediaUrl) {
+    const img = new Image();
+    img.onload = () => {
+        element.innerHTML = `<img src="${mediaUrl}" alt="Shared image" style="max-width: 300px; max-height: 200px; object-fit: contain; border-radius: 8px;">`;
+        element.classList.remove('loading');
+
+        const imgElement = element.querySelector('img');
+        if (imgElement) {
+            imgElement.addEventListener('click', () => {
+                openImageViewer(mediaUrl);
+            });
+        }
+    };
+    img.onerror = () => {
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Failed to load image</span></div>';
+        element.classList.remove('loading');
+    };
+    img.src = mediaUrl;
+}
+
+function loadLazyVideo(element, mediaUrl, videoExt) {
+    // Auto-load all videos regardless of size
+    loadVideoDirectly(element, mediaUrl, videoExt);
+}
+
+function loadVideoDirectly(element, mediaUrl, videoExt) {
+    const tempVideo = document.createElement('video');
+    tempVideo.src = mediaUrl;
+    tempVideo.onloadedmetadata = () => {
+        const shouldLoop = tempVideo.duration < 60;
+        tempVideo.remove();
+
+        element.innerHTML = `
+            <video controls autoplay muted ${shouldLoop ? 'loop' : ''} style="max-width: 300px; max-height: 200px; border-radius: 8px;">
+                <source src="${mediaUrl}" type="video/${videoExt === 'mov' ? 'quicktime' : videoExt}">
+                Your browser does not support the video tag.
+            </video>`;
+        element.classList.remove('loading');
+
+        const videoElement = element.querySelector('video');
+        if (videoElement) {
+            videoElement.addEventListener('click', () => {
+                openVideoViewer(mediaUrl, shouldLoop);
+            });
+        }
+    };
+    tempVideo.onerror = () => {
+        element.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Failed to load video</span></div>';
+        element.classList.remove('loading');
+    };
+    tempVideo.load();
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        const messageInput = document.querySelector('.message-input');
+        const replyBar = document.querySelector('.reply-bar');
+        if (messageInput && replyBar && messageInput.dataset.replyTo) {
+            delete messageInput.dataset.replyTo;
+            messageInput.placeholder = `Message #${currentChannel}`;
+            replyBar.style.display = 'none';
+        }
+    }
+});
 
 async function getMessageById(messageId) {
     return new Promise((resolve) => {
@@ -267,7 +752,7 @@ function scrollToMessage(messageId) {
         socket.once('channel_history', (data) => {
             if (data.channel === currentChannel) {
                 data.messages.forEach(msg => {
-                    addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to);
+                    addMessage(msg.sender, msg.message, msg.is_media, msg.timestamp, false, msg.id, msg.replied_to, msg.replies_count || 0);
                     if (msg.reactions && msg.reactions.length > 0) {
                         updateReactions(msg.id, msg.reactions);
                     }
@@ -286,6 +771,19 @@ function scrollToMessage(messageId) {
     }
 }
 
+async function getMessageById(messageId) {
+    return new Promise((resolve) => {
+        socket.emit('get_message', { message_id: messageId, channel: currentChannel });
+        socket.once('message_data', (data) => {
+            resolve(data.message || null);
+        });
+        socket.once('error', (data) => {
+            console.error('Failed to fetch message:', data.msg);
+            resolve(null);
+        });
+    });
+}
+
 function showReactionPicker(messageId, messageGroup) {
     console.log('showReactionPicker called', { messageId, messageGroup });
     try {
@@ -300,13 +798,11 @@ function showReactionPicker(messageId, messageGroup) {
             return;
         }
 
-        // Remove any existing reaction pickers
         document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
         const picker = document.createElement('div');
         picker.className = 'reaction-picker';
         console.log('Reaction picker created');
 
-        // Add emojis to the picker
         const emojis = ['👍', '👎', '❤️', '☠', '😂', '😮', '😢', '😡', '🙂', '😱', '🐕', '🐈', '🐿', '🐓'];
         emojis.forEach(emoji => {
             const button = document.createElement('button');
@@ -325,17 +821,15 @@ function showReactionPicker(messageId, messageGroup) {
             picker.appendChild(button);
         });
 
-        // Append picker to the messageGroup (parent of add-reaction-btn) for relative positioning
         const addReactionBtn = messageGroup.querySelector('.add-reaction-btn');
         if (!addReactionBtn) {
             console.error('add-reaction-btn not found in messageGroup');
             showError('Reaction button not found. Please refresh.');
             return;
         }
-        messageGroup.appendChild(picker); // Append to messageGroup instead of messages-container
+        messageGroup.appendChild(picker);
         console.log('Picker appended to messageGroup');
 
-        // Get positioning data
         const messagesContainer = document.getElementById('messages-container');
         if (!messagesContainer) {
             console.error('messages-container not found');
@@ -346,36 +840,22 @@ function showReactionPicker(messageId, messageGroup) {
         const containerRect = messagesContainer.getBoundingClientRect();
         const pickerWidth = 200;
 
-        // Check if there's enough space to the right
         const spaceRight = window.innerWidth - buttonRect.right;
         const wouldOverflowRight = spaceRight < pickerWidth;
 
-        // Position the picker (rely on CSS for top: 50%, transform: translateY(-50%), left: 100%)
         picker.style.position = 'absolute';
         if (wouldOverflowRight) {
-            // Flip to the left if not enough space on the right
             picker.style.left = 'auto';
-            picker.style.right = '100%'; // Position to the left of the button
-            picker.style.marginRight = '8px'; // Gap on the left side
+            picker.style.right = '100%';
+            picker.style.marginRight = '8px';
             picker.style.marginLeft = '0';
         } else {
-            // Position to the right (CSS handles left: 100%)
-            picker.style.left = ''; // Let CSS handle left: 100%
+            picker.style.left = '';
             picker.style.right = 'auto';
-            picker.style.marginLeft = ''; // Let CSS handle margin-left: 8px
+            picker.style.marginLeft = '';
             picker.style.marginRight = '0';
         }
 
-        // Ensure CSS handles vertical centering (top: 50%, transform: translateY(-50%))
-        // No need to set top or transform here if CSS is applied
-        console.log('Picker positioned:', {
-            left: picker.style.left,
-            right: picker.style.right,
-            marginLeft: picker.style.marginLeft,
-            marginRight: picker.style.marginRight
-        });
-
-        // Handle scroll if picker overflows bottom
         const pickerRect = picker.getBoundingClientRect();
         if (pickerRect.bottom > containerRect.bottom) {
             messagesContainer.scrollTo({
@@ -384,7 +864,6 @@ function showReactionPicker(messageId, messageGroup) {
             });
         }
 
-        // Close picker when clicking outside
         const closePicker = (event) => {
             if (!picker.contains(event.target) && !event.target.closest('.add-reaction-btn')) {
                 console.log('Closing picker');
@@ -458,10 +937,22 @@ function createCarousel(attachments, messageId) {
     return carouselHtml;
 }
 
-/* Carousel modification 9-7-0155AM, left and right button and key ui ux improvement */
 function initCarousel(id, attachments) {
     const container = document.getElementById(id);
     if (!container) return;
+    attachments = attachments.filter(att => {
+        if (typeof att === 'string' && att.trim()) {
+            return true;
+        } else if (typeof att === 'object' && att !== null && att.url && typeof att.url === 'string') {
+            return true;
+        }
+        console.warn('Skipping invalid carousel attachment:', att);
+        return false;
+    });
+    if (attachments.length === 0) {
+        container.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>No valid attachments</span></div>';
+        return;
+    }
     const main = container.querySelector('.carousel-main');
     const thumbs = container.querySelector('.carousel-thumbs');
     const prevBtn = container.querySelector('.carousel-prev');
@@ -472,84 +963,116 @@ function initCarousel(id, attachments) {
 
     function renderAttachment(index) {
         const att = attachments[index];
-        const cleanAtt = att.replace(/[\n\r]/g, ''); // Remove newlines
+        const url = typeof att === 'string' ? att : att.url;
+        if (!url) {
+            main.innerHTML = '<div class="media-placeholder"><i class="fas fa-exclamation-triangle fa-2x"></i><span>Invalid attachment</span></div>';
+            return;
+        }
+        const cleanAtt = url.replace(/[\n\r]/g, '');
         const ext = cleanAtt.split('.').pop().toLowerCase();
         let content = '';
         const imageExtensions = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'];
         const videoExtensions = ['mp4', 'webm', 'avi', 'mov'];
         if (imageExtensions.includes(ext)) {
-            console.log('Rendering carousel image:', cleanAtt);
-            content = `<img src="${escapeHtml(cleanAtt)}" alt="Attachment ${index + 1}">`;
+            const pathParts = cleanAtt.split('/');
+            const storageDir = pathParts[2];
+            let thumbnailUrl = (typeof att === 'object' && att.thumbnail_url) ?
+                att.thumbnail_url :
+                cleanAtt.replace(`/static/${storageDir}/`, `/static/thumbnails/${storageDir}/`).replace(/\.[^.]+$/, '_thumb.jpg');
+
+            // Handle both old and new thumbnail URL formats for backward compatibility
+            if (thumbnailUrl && !thumbnailUrl.includes('/uploads/') && cleanAtt.includes('/uploads/')) {
+                // Old format: add /uploads/ to match the full image path
+                thumbnailUrl = thumbnailUrl.replace('/static/thumbnails/', '/static/thumbnails/uploads/');
+            }
+            content = `
+                <div class="carousel-main-image" data-full-url="${escapeHtml(cleanAtt)}" data-thumbnail-url="${escapeHtml(thumbnailUrl)}" data-index="${index}">
+                    <div class="media-placeholder">
+                        <i class="fas fa-image fa-3x"></i>
+                        <span>Loading thumbnail...</span>
+                    </div>
+                </div>`;
+                // Load thumbnail immediately
+                setTimeout(() => {
+                    const mainImageElement = main.querySelector('.carousel-main-image');
+                    if (mainImageElement) {
+                        loadCarouselImage(mainImageElement, cleanAtt, thumbnailUrl, index, attachments);
+                    }
+                }, 10);
         } else if (videoExtensions.includes(ext)) {
-            let shouldLoop = false;
-            const video = document.createElement('video');
-            video.src = cleanAtt;
-            video.onloadedmetadata = () => {
-                if (video.duration < 60) shouldLoop = true;
-                video.remove();
-            };
-            video.load();
-            console.log('Rendering carousel video:', cleanAtt);
-            content = `<video controls ${shouldLoop ? 'loop' : ''}>
-                        <source src="${escapeHtml(cleanAtt)}" type="video/${ext === 'mov' ? 'quicktime' : ext}">
-                        Your browser does not support the video tag.
-                    </video>`;
+            const lazyUrl = cleanAtt.replace('/static/', '/lazy-file/');
+            const size = (typeof att === 'object' && att.size) ? att.size : 0;
+
+            // Auto-load all videos regardless of size
+            content = `
+                <div class="carousel-main-video" data-media-url="${escapeHtml(lazyUrl)}" data-media-type="video" data-video-ext="${ext}" data-size="${size}">
+                    <div class="media-placeholder">
+                        <i class="fas fa-video fa-3x"></i>
+                        <span>Loading video...</span>
+                    </div>
+                </div>`;
+            // Load video immediately
+            setTimeout(() => {
+                const mainVideoElement = main.querySelector('.carousel-main-video');
+                if (mainVideoElement) {
+                    loadCarouselVideo(mainVideoElement, lazyUrl, ext, index, attachments);
+                }
+            }, 10);
         } else {
             const icon = getDocIcon(ext);
             const fileName = cleanAtt.split('/').pop();
-            console.log('Rendering carousel document:', cleanAtt);
-            content = `<div class="doc-preview"><i class="fas ${icon} fa-3x"></i><a href="${escapeHtml(cleanAtt)}" target="_blank">${escapeHtml(fileName)}</a></div>`;
+            content = `
+                <div class="carousel-main-file">
+                    <i class="fas ${icon} fa-3x"></i>
+                    <a href="${escapeHtml(cleanAtt)}" target="_blank" class="file-link">${escapeHtml(fileName)}</a>
+                </div>`;
         }
         main.innerHTML = content;
-
-        // Add click handler for images in the carousel main
-        const imgElement = main.querySelector('img');
-        if (imgElement) {
-            imgElement.addEventListener('click', () => {
-                const imageUrls = attachments.filter(att => {
-                    const ext = att.split('.').pop().toLowerCase();
-                    return ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext);
-                });
-                openImageViewer(imageUrls, index);
-            });
-        }
     }
 
     function renderThumbs() {
         thumbs.innerHTML = '';
         attachments.forEach((att, idx) => {
-            const cleanAtt = att.replace(/[\n\r]/g, '');
+            const url = typeof att === 'string' ? att : att.url;
+            if (!url) return;
+            const cleanAtt = url.replace(/[\n\r]/g, '');
             const ext = cleanAtt.split('.').pop().toLowerCase();
             let thumb = '';
             if (['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext)) {
-                thumb = `<img src="${escapeHtml(cleanAtt)}" alt="Thumb ${idx + 1}">`;
+                const pathParts = cleanAtt.split('/');
+                const storageDir = pathParts[2] || 'uploads';
+                let thumbnailUrl = (typeof att === 'object' && att.thumbnail_url) ?
+                    att.thumbnail_url :
+                    cleanAtt.replace(`/static/${storageDir}/`, `/static/thumbnails/${storageDir}/`).replace(/\.[^.]+$/, '_thumb.jpg');
+
+                // Handle both old and new thumbnail URL formats for backward compatibility
+                if (thumbnailUrl && !thumbnailUrl.includes('/uploads/') && cleanAtt.includes('/uploads/')) {
+                    // Old format: add /uploads/ to match the full image path
+                    thumbnailUrl = thumbnailUrl.replace('/static/thumbnails/', '/static/thumbnails/uploads/');
+                }
+                thumb = `<div class="carousel-thumb-image" data-full-url="${escapeHtml(cleanAtt)}" data-thumbnail-url="${escapeHtml(thumbnailUrl)}" data-index="${idx}">
+                    <div class="media-placeholder">
+                        <i class="fas fa-image fa-2x"></i>
+                        <span>Loading...</span>
+                    </div>
+                </div>`;
+                setTimeout(() => {
+                    const thumbElement = thumbs.querySelectorAll('.carousel-thumb-image')[idx];
+                    if (thumbElement) {
+                        loadThumbImage(thumbElement, cleanAtt, thumbnailUrl, idx);
+                    }
+                }, 10 + (idx * 20));
             } else if (['mp4', 'webm', 'avi', 'mov'].includes(ext)) {
-                thumb = `<i class="fas fa-video"></i>`;
+                thumb = `<div class="carousel-thumb-video" data-index="${idx}"><i class="fas fa-video"></i></div>`;
             } else {
-                thumb = `<i class="fas ${getDocIcon(ext)}"></i>`;
+                thumb = `<div class="carousel-thumb-file" data-index="${idx}"><i class="fas ${getDocIcon(ext)}"></i></div>`;
             }
             const thumbDiv = document.createElement('div');
             thumbDiv.className = 'carousel-thumb' + (idx === currentIndex ? ' active' : '');
             thumbDiv.innerHTML = thumb;
             thumbDiv.onclick = () => {
-                console.log('Thumbnail clicked:', cleanAtt);
-                if (['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext)) {
-                    const imageUrls = attachments.filter(att => {
-                        const ext = att.split('.').pop().toLowerCase();
-                        return ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext);
-                    });
-                    openImageViewer(imageUrls, idx);
-                } else if (['mp4', 'webm', 'avi', 'mov'].includes(ext)) {
-                    let shouldLoop = false;
-                    const video = document.createElement('video');
-                    video.src = cleanAtt;
-                    video.onloadedmetadata = () => {
-                        if (video.duration < 60) shouldLoop = true;
-                        video.remove();
-                    };
-                    video.load();
-                    openVideoViewer(escapeHtml(cleanAtt), shouldLoop);
-                }
+                // For all carousels, navigate within the carousel consistently
+                // This provides uniform behavior regardless of media type
                 showIndex(idx);
             };
             thumbs.appendChild(thumbDiv);
@@ -579,105 +1102,3 @@ function initCarousel(id, attachments) {
     renderThumbs();
     showIndex(0);
 }
-
-
-/*
-function initCarousel(id, attachments) {
-    const container = document.getElementById(id);
-    if (!container) return;
-    const main = container.querySelector('.carousel-main');
-    const thumbs = container.querySelector('.carousel-thumbs');
-    const prevBtn = container.querySelector('.carousel-prev');
-    const nextBtn = container.querySelector('.carousel-next');
-    const slideshowBtn = container.querySelector('.carousel-slideshow');
-    let currentIndex = 0;
-    let slideshowInterval = null;
-    function renderAttachment(index) {
-        const att = attachments[index];
-        const cleanAtt = att.replace(/[\n\r]/g, ''); // Remove newlines
-        const ext = cleanAtt.split('.').pop().toLowerCase();
-        let content = '';
-        const imageExtensions = ['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'];
-        const videoExtensions = ['mp4', 'webm', 'avi', 'mov'];
-        if (imageExtensions.includes(ext)) {
-            console.log('Rendering carousel image:', cleanAtt);
-            content = `<img src="${escapeHtml(cleanAtt)}" alt="Attachment ${index + 1}" onclick="openImageViewer('${escapeHtml(cleanAtt)}')">`;
-        } else if (videoExtensions.includes(ext)) {
-            let shouldLoop = false;
-            const video = document.createElement('video');
-            video.src = cleanAtt;
-            video.onloadedmetadata = () => {
-                if (video.duration < 60) shouldLoop = true;
-                video.remove();
-            };
-            video.load();
-            console.log('Rendering carousel video:', cleanAtt);
-            content = `<video controls ${shouldLoop ? 'loop' : ''}>
-                        <source src="${escapeHtml(cleanAtt)}" type="video/${ext === 'mov' ? 'quicktime' : ext}">
-                        Your browser does not support the video tag.
-                    </video>`;
-        } else {
-            const icon = getDocIcon(ext);
-            const fileName = cleanAtt.split('/').pop();
-            console.log('Rendering carousel document:', cleanAtt);
-            content = `<div class="doc-preview"><i class="fas ${icon} fa-3x"></i><a href="${escapeHtml(cleanAtt)}" target="_blank">${escapeHtml(fileName)}</a></div>`;
-        }
-        main.innerHTML = content;
-    }
-    function renderThumbs() {
-        thumbs.innerHTML = '';
-        attachments.forEach((att, idx) => {
-            const cleanAtt = att.replace(/[\n\r]/g, '');
-            const ext = cleanAtt.split('.').pop().toLowerCase();
-            let thumb = '';
-            if (['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext)) {
-                thumb = `<img src="${escapeHtml(cleanAtt)}" alt="Thumb ${idx + 1}">`;
-            } else if (['mp4', 'webm', 'avi', 'mov'].includes(ext)) {
-                thumb = `<i class="fas fa-video"></i>`;
-            } else {
-                thumb = `<i class="fas ${getDocIcon(ext)}"></i>`;
-            }
-            const thumbDiv = document.createElement('div');
-            thumbDiv.className = 'carousel-thumb' + (idx === currentIndex ? ' active' : '');
-            thumbDiv.innerHTML = thumb;
-            thumbDiv.onclick = () => {
-                console.log('Thumbnail clicked:', cleanAtt);
-                if (['png', 'webp', 'jpg', 'jpeg', 'gif', 'jfif'].includes(ext)) {
-                    openImageViewer(escapeHtml(cleanAtt));
-                } else if (['mp4', 'webm', 'avi', 'mov'].includes(ext)) {
-                    let shouldLoop = false;
-                    const video = document.createElement('video');
-                    video.src = cleanAtt;
-                    video.onloadedmetadata = () => {
-                        if (video.duration < 60) shouldLoop = true;
-                        video.remove();
-                    };
-                    video.load();
-                    openVideoViewer(escapeHtml(cleanAtt), shouldLoop);
-                }
-                showIndex(idx);
-            };
-            thumbs.appendChild(thumbDiv);
-        });
-    }
-    function showIndex(index) {
-        currentIndex = (index + attachments.length) % attachments.length;
-        renderAttachment(currentIndex);
-        renderThumbs();
-    }
-    function toggleSlideshow() {
-        if (slideshowInterval) {
-            clearInterval(slideshowInterval);
-            slideshowInterval = null;
-            slideshowBtn.textContent = '▶️';
-        } else {
-            slideshowInterval = setInterval(() => showIndex(currentIndex + 1), 3000);
-            slideshowBtn.textContent = '⏸️';
-        }
-    }
-    prevBtn.onclick = () => showIndex(currentIndex - 1);
-    nextBtn.onclick = () => showIndex(currentIndex + 1);
-    slideshowBtn.onclick = toggleSlideshow;
-    renderThumbs();
-    showIndex(0);
-}*/

@@ -7,7 +7,14 @@ function openImageViewer(imageUrls, initialIndex = 0) {
     }
 
     const images = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
-    let currentIndex = Math.max(0, Math.min(initialIndex, images.length - 1));
+    // Ensure all URLs are full static URLs, not lazy URLs
+    const processedImages = images.map(url => {
+        if (url && typeof url === 'string') {
+            return url.replace('/lazy-file/', '/static/');
+        }
+        return url;
+    });
+    let currentIndex = Math.max(0, Math.min(initialIndex, processedImages.length - 1));
 
     const viewer = document.createElement('div');
     viewer.className = 'image-viewer';
@@ -23,7 +30,7 @@ function openImageViewer(imageUrls, initialIndex = 0) {
     viewer.style.zIndex = '2000';
 
     const img = document.createElement('img');
-    img.src = images[currentIndex];
+    img.src = processedImages[currentIndex];
     img.style.maxWidth = '90%';
     img.style.maxHeight = '90%';
     img.style.borderRadius = '8px';
@@ -72,8 +79,8 @@ function openImageViewer(imageUrls, initialIndex = 0) {
     prevBtn.style.cursor = 'pointer';
     prevBtn.style.transition = 'background-color 0.2s ease';
     prevBtn.addEventListener('click', () => {
-        currentIndex = (currentIndex - 1 + images.length) % images.length;
-        img.src = images[currentIndex];
+        currentIndex = (currentIndex - 1 + processedImages.length) % processedImages.length;
+        img.src = processedImages[currentIndex];
         img.style.opacity = '1'; // Re-apply to avoid darkening
         img.style.background = 'none';
         img.style.filter = 'none';
@@ -98,8 +105,8 @@ function openImageViewer(imageUrls, initialIndex = 0) {
     nextBtn.style.cursor = 'pointer';
     nextBtn.style.transition = 'background-color 0.2s ease';
     nextBtn.addEventListener('click', () => {
-        currentIndex = (currentIndex + 1) % images.length;
-        img.src = images[currentIndex];
+        currentIndex = (currentIndex + 1) % processedImages.length;
+        img.src = processedImages[currentIndex];
         img.style.opacity = '1'; // Re-apply to avoid darkening
         img.style.background = 'none';
         img.style.filter = 'none';
@@ -122,23 +129,23 @@ function openImageViewer(imageUrls, initialIndex = 0) {
 
     // Update image count text
     function updateImageCount() {
-        imageCount.textContent = `${currentIndex + 1} / ${images.length}`;
+        imageCount.textContent = `${currentIndex + 1} / ${processedImages.length}`;
     }
     updateImageCount();
 
     // Keyboard navigation
     function handleKeydown(e) {
         if (e.key === 'ArrowLeft') {
-            currentIndex = (currentIndex - 1 + images.length) % images.length;
-            img.src = images[currentIndex];
+            currentIndex = (currentIndex - 1 + processedImages.length) % processedImages.length;
+            img.src = processedImages[currentIndex];
             img.style.opacity = '1'; // Re-apply to avoid darkening
             img.style.background = 'none';
             img.style.filter = 'none';
             img.style.mixBlendMode = 'normal';
             updateImageCount();
         } else if (e.key === 'ArrowRight') {
-            currentIndex = (currentIndex + 1) % images.length;
-            img.src = images[currentIndex];
+            currentIndex = (currentIndex + 1) % processedImages.length;
+            img.src = processedImages[currentIndex];
             img.style.opacity = '1'; // Re-apply to avoid darkening
             img.style.background = 'none';
             img.style.filter = 'none';
@@ -161,7 +168,7 @@ function openImageViewer(imageUrls, initialIndex = 0) {
 
     viewer.appendChild(img);
     viewer.appendChild(closeBtn);
-    if (images.length > 1) {
+    if (processedImages.length > 1) {
         viewer.appendChild(prevBtn);
         viewer.appendChild(nextBtn);
         viewer.appendChild(imageCount);
@@ -178,10 +185,20 @@ function closeImageViewer() {
     }
 }
 
-function openVideoViewer(videoSrc, shouldLoop) {
+function openVideoViewer(videoUrls, initialIndex = 0, shouldLoop = false) {
     if (currentVideoViewer) {
         closeVideoViewer();
     }
+
+    const videos = Array.isArray(videoUrls) ? videoUrls : [videoUrls];
+    // Ensure all URLs are full static URLs, not lazy URLs
+    const processedVideos = videos.map(url => {
+        if (url && typeof url === 'string') {
+            return url.replace('/lazy-file/', '/static/');
+        }
+        return url;
+    });
+    let currentIndex = Math.max(0, Math.min(initialIndex, processedVideos.length - 1));
 
     const viewer = document.createElement('div');
     viewer.className = 'video-viewer';
@@ -197,7 +214,7 @@ function openVideoViewer(videoSrc, shouldLoop) {
     viewer.style.zIndex = '2000';
 
     const video = document.createElement('video');
-    video.src = videoSrc;
+    video.src = processedVideos[currentIndex];
     video.controls = true;
     video.muted = true; // Mute by default for autoplay compatibility
     video.loop = shouldLoop;
@@ -224,7 +241,7 @@ function openVideoViewer(videoSrc, shouldLoop) {
     closeBtn.style.top = '20px';
     closeBtn.style.right = '30px';
     closeBtn.style.fontSize = '24px';
-    closeBtn.style.color = 'white';
+    closeBtn.style.color = 'var(--text-primary)';
     closeBtn.style.background = 'none';
     closeBtn.style.border = 'none';
     closeBtn.style.cursor = 'pointer';
@@ -233,8 +250,113 @@ function openVideoViewer(videoSrc, shouldLoop) {
         closeVideoViewer();
     });
 
+    // Left navigation button
+    const prevBtn = document.createElement('button');
+    prevBtn.innerHTML = '&lt;';
+    prevBtn.className = 'carousel-prev';
+    prevBtn.style.position = 'absolute';
+    prevBtn.style.left = '20px';
+    prevBtn.style.top = '50%';
+    prevBtn.style.transform = 'translateY(-50%)';
+    prevBtn.style.fontSize = '24px';
+    prevBtn.style.color = 'var(--text-primary)';
+    prevBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    prevBtn.style.border = 'none';
+    prevBtn.style.borderRadius = '4px';
+    prevBtn.style.padding = '10px';
+    prevBtn.style.cursor = 'pointer';
+    prevBtn.style.transition = 'background-color 0.2s ease';
+    prevBtn.addEventListener('click', () => {
+        currentIndex = (currentIndex - 1 + processedVideos.length) % processedVideos.length;
+        video.src = processedVideos[currentIndex];
+        video.play().catch((error) => {
+            console.error('Video auto-play failed:', error);
+        });
+        updateVideoCount();
+    });
+
+    // Right navigation button
+    const nextBtn = document.createElement('button');
+    nextBtn.innerHTML = '&gt;';
+    nextBtn.className = 'carousel-next';
+    nextBtn.style.position = 'absolute';
+    nextBtn.style.right = '20px';
+    nextBtn.style.top = '50%';
+    nextBtn.style.transform = 'translateY(-50%)';
+    nextBtn.style.fontSize = '24px';
+    nextBtn.style.color = 'var(--text-primary)';
+    nextBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    nextBtn.style.border = 'none';
+    nextBtn.style.borderRadius = '4px';
+    nextBtn.style.padding = '10px';
+    nextBtn.style.cursor = 'pointer';
+    nextBtn.style.transition = 'background-color 0.2s ease';
+    nextBtn.addEventListener('click', () => {
+        currentIndex = (currentIndex + 1) % processedVideos.length;
+        video.src = processedVideos[currentIndex];
+        video.play().catch((error) => {
+            console.error('Video auto-play failed:', error);
+        });
+        updateVideoCount();
+    });
+
+    // Video count indicator
+    const videoCount = document.createElement('span');
+    videoCount.className = 'carousel-count';
+    videoCount.style.position = 'absolute';
+    videoCount.style.bottom = '20px';
+    videoCount.style.left = '50%';
+    videoCount.style.transform = 'translateX(-50%)';
+    videoCount.style.color = 'var(--text-primary)';
+    videoCount.style.fontSize = '16px';
+    videoCount.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    videoCount.style.padding = '5px 10px';
+    videoCount.style.borderRadius = '4px';
+
+    // Update video count text
+    function updateVideoCount() {
+        videoCount.textContent = `${currentIndex + 1} / ${processedVideos.length}`;
+    }
+    updateVideoCount();
+
+    // Keyboard navigation
+    function handleKeydown(e) {
+        if (e.key === 'ArrowLeft') {
+            currentIndex = (currentIndex - 1 + processedVideos.length) % processedVideos.length;
+            video.src = processedVideos[currentIndex];
+            video.play().catch((error) => {
+                console.error('Video auto-play failed:', error);
+            });
+            updateVideoCount();
+        } else if (e.key === 'ArrowRight') {
+            currentIndex = (currentIndex + 1) % processedVideos.length;
+            video.src = processedVideos[currentIndex];
+            video.play().catch((error) => {
+                console.error('Video auto-play failed:', error);
+            });
+            updateVideoCount();
+        }
+    }
+    document.addEventListener('keydown', handleKeydown);
+
+    // Clean up keyboard listener when closing
+    function cleanup() {
+        document.removeEventListener('keydown', handleKeydown);
+    }
+    closeBtn.addEventListener('click', cleanup, { once: true });
+    viewer.addEventListener('click', (e) => {
+        if (e.target === viewer) {
+            cleanup();
+        }
+    }, { once: true });
+
     viewer.appendChild(video);
     viewer.appendChild(closeBtn);
+    if (processedVideos.length > 1) {
+        viewer.appendChild(prevBtn);
+        viewer.appendChild(nextBtn);
+        viewer.appendChild(videoCount);
+    }
 
     document.body.appendChild(viewer);
     currentVideoViewer = viewer;

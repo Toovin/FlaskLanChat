@@ -5,10 +5,32 @@ console.log('Initial DOM state:', {
     loadingSpinner: !!loadingSpinner
 });
 
-if (appContainer) appContainer.style.display = 'none';
-if (loginModal) loginModal.style.display = 'flex';
+if (appContainer) {
+  appContainer.classList.add('hidden'); // Optional, or just hide via CSS
+}
+
+// Show modal using class-based visibility — triggers centering
+if (loginModal) {
+  loginModal.classList.add('active');
+}
 
 const loginForm = document.getElementById('login-form');
+const registerButton = document.getElementById('register-button');
+const loginButton = document.getElementById('login-button');
+const verifyGroup = document.getElementById('verify-password-group');
+
+if (registerButton && verifyGroup) {
+    registerButton.addEventListener('click', () => {
+        verifyGroup.style.display = 'block';
+    });
+}
+
+if (loginButton && verifyGroup) {
+    loginButton.addEventListener('click', () => {
+        verifyGroup.style.display = 'none';
+    });
+}
+
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -30,6 +52,17 @@ if (loginForm) {
         if (!username || !password || username.length < 3 || password.length < 6) {
             showError('Username (min 3 chars) and password (min 6 chars) are required.');
             return;
+        }
+
+        if (isRegister) {
+            const verifyPasswordInput = document.getElementById('verify-password-input');
+            if (verifyPasswordInput) {
+                const verifyPassword = verifyPasswordInput.value.trim();
+                if (password !== verifyPassword) {
+                    showError('Passwords do not match.');
+                    return;
+                }
+            }
         }
 
         currentUsername = username;

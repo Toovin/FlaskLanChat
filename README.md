@@ -1,9 +1,28 @@
-# FlaskLanChat - a mostly working lan chat with an extreme lack of secure features and operations. DONT USE IN SENSITIVE ENVIRONMENTS WITH OUT IMPLEMENTING HTTPS/CERTS. 
-FlaskLanChat - Send/receive  group messages, share files, and some other extra AI goodies with some elbow grease. 
+# FlaskLanChat - Merged Feature Edition
 
+A Discord-like LAN chat application combining the best features from both Amphlux's and Toovin's versions.
 
-PYTHON 3.13.5 ENVIRONEMNT
-VOICE CHAT: SEPARATE LIVEKIT SERVER PROCESS, SEE BELOW. 
+## 🎯 Merged Features
+
+This version combines features from both codebases:
+
+**From Amphlux's Version:**
+- 🎲 **Dice Rolling System** - Complete D&D-style dice with custom options
+- 🎙️ **LiveKit Voice Chat Integration** - Real-time voice communication
+- 🎨 **Enhanced CSS Styling** - Improved visual design
+
+**From Toovin's Version (Base):**
+- 🏰 **Adventure System** - RPG city management and recruitment
+- 🎵 **Media System** - YouTube download, thumbnails, and playback
+- 🔒 **Enhanced Security** - Better session management and HTTPS configs
+- 🧪 **Test Suite** - Comprehensive testing framework
+- 🔧 **Extension Management** - Better organized extension system
+- 👤 **Default Avatars** - Built-in avatar system
+
+## 🚀 Quick Start
+
+PYTHON 3.13.5 ENVIRONMENT
+VOICE CHAT: SEPARATE LIVEKIT SERVER PROCESS (SEE BELOW) 
 
 INSTALL DEPENDENCIES (Example list given from working environment, probably dont need all of them but just in case...)
 ## TO RUN : server_v5.py launches server on port 6970 with a devchat.db for chat history. 

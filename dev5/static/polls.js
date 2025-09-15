@@ -5,7 +5,7 @@ let pollForm = null;
 function initializePolls() {
     pollModal = document.getElementById('poll-modal');
     pollForm = document.getElementById('poll-form');
-    
+
     if (!pollModal || !pollForm) {
         console.error('Poll modal or form not found');
         return;
@@ -57,7 +57,7 @@ function hidePollModal() {
 
 function resetPollForm() {
     pollForm.reset();
-    
+
     // Reset to 2 options
     const container = document.getElementById('poll-options-container');
     if (container) {
@@ -100,7 +100,7 @@ function addPollOption() {
 function removePollOption(button) {
     const optionDiv = button.parentElement;
     const container = document.getElementById('poll-options-container');
-    
+
     if (container.children.length <= 2) {
         showError('At least 2 options are required');
         return;
@@ -114,7 +114,7 @@ function removePollOption(button) {
 function updateRemoveButtons() {
     const container = document.getElementById('poll-options-container');
     const removeButtons = container.querySelectorAll('.remove-option-btn');
-    
+
     removeButtons.forEach(btn => {
         btn.style.display = container.children.length > 2 ? 'inline-block' : 'none';
     });
@@ -123,7 +123,7 @@ function updateRemoveButtons() {
 function updatePlaceholders() {
     const container = document.getElementById('poll-options-container');
     const inputs = container.querySelectorAll('input[type="text"]');
-    
+
     inputs.forEach((input, index) => {
         input.placeholder = `Option ${index + 1}`;
     });
@@ -143,7 +143,7 @@ function handleRemoveOption(e) {
 
 function handlePollSubmit(e) {
     e.preventDefault();
-    
+
     const question = document.getElementById('poll-question-input').value.trim();
     const optionInputs = document.querySelectorAll('#poll-options-container input[type="text"]');
     const options = Array.from(optionInputs)
@@ -221,8 +221,8 @@ function renderPoll(poll) {
         const canVote = poll.is_active && isAuthenticated;
 
         pollHTML += `
-            <div class="poll-option ${isSelected ? 'selected' : ''}" 
-                 ${canVote ? `onclick="votePoll(${poll.id}, ${index})"` : ''} 
+            <div class="poll-option ${isSelected ? 'selected' : ''}"
+                 ${canVote ? `onclick="votePoll(${poll.id}, ${index})"` : ''}
                  ${canVote ? 'style="cursor: pointer;"' : ''}>
                 <div class="poll-option-content">
                     <span class="poll-option-text">${escapeHtml(option)}</span>
@@ -236,9 +236,9 @@ function renderPoll(poll) {
     });
 
     pollHTML += `</div>`;
-    
+
     // Add poll footer with total votes and close button
-    const creator = Object.values(users_db).find(user => 
+    const creator = Object.values(users_db).find(user =>
         Object.keys(users_db).find(key => users_db[key] === user) === poll.creator_uuid
     );
     const creatorName = creator ? creator.username : 'Unknown';
@@ -298,7 +298,7 @@ if (typeof socket !== 'undefined') {
             if (messagesContainer) {
                 const pollElement = renderPoll(data.poll);
                 messagesContainer.appendChild(pollElement);
-                
+
                 if (autoScrollEnabled) {
                     scrollToBottom();
                 }
@@ -320,7 +320,7 @@ if (typeof socket !== 'undefined') {
                     const pollElement = renderPoll(poll);
                     messagesContainer.appendChild(pollElement);
                 });
-                
+
                 if (autoScrollEnabled) {
                     scrollToBottom();
                 }

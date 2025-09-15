@@ -1,5 +1,5 @@
 {
-    "eai_api_url": "http://172.28.176.1:12340/v1/chat/completions",
+    "eai_api_url": "http://YOUR_EAI_SERVER_IP:1234/v1/chat/completions",
     "bot_mention": "@eai",
     "max_tokens": 1000,
     "temperature": 0.7,
