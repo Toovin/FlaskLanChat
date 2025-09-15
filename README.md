@@ -1,23 +1,26 @@
-# FlaskLanChat - Merged Feature Edition
+# FlaskLanChat
 
-A Discord-like LAN chat application combining the best features from both Amphlux's and Toovin's versions.
+A Discord-like LAN chat application by **Toovin** with contributions from **Amphlux**.
 
-## 🎯 Merged Features
+## 🎯 Features
 
-This version combines features from both codebases:
-
-**From Amphlux's Version:**
-- 🎲 **Dice Rolling System** - Complete D&D-style dice with custom options
-- 🎙️ **LiveKit Voice Chat Integration** - Real-time voice communication
-- 🎨 **Enhanced CSS Styling** - Improved visual design
-
-**From Toovin's Version (Base):**
+**Core Application by Toovin:**
 - 🏰 **Adventure System** - RPG city management and recruitment
 - 🎵 **Media System** - YouTube download, thumbnails, and playback
 - 🔒 **Enhanced Security** - Better session management and HTTPS configs
 - 🧪 **Test Suite** - Comprehensive testing framework
 - 🔧 **Extension Management** - Better organized extension system
 - 👤 **Default Avatars** - Built-in avatar system
+- 💬 **Core Chat Functionality** - Channels, file sharing, reactions
+- 🎨 **Base UI/UX** - Modern Discord-like interface
+
+**Additional Features by Amphlux:**
+- 🎲 **Dice Rolling System** - Complete D&D-style dice with custom options
+- 🎙️ **LiveKit Voice Chat Integration** - Real-time voice communication
+- 🎨 **Theme Customization** - Multiple color themes
+- 📊 **Poll System** - Interactive voting
+- ⚙️ **User Settings** - Comprehensive user preferences
+- 📁 **Dynamic Channels** - Create/manage channels
 
 ## 🚀 Quick Start
 

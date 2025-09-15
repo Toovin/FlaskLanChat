@@ -6,31 +6,13 @@ This document summarizes the successful merge of features from two FlaskLanChat 
 - **Toovin's Version**: https://github.com/Toovin/FlaskLanChat
 
 ## 🏗️ Merge Strategy
-**Base Used**: Toovin's `dev5f` directory (most advanced version)
-**Integration**: Added Amphlux's unique features while preserving all Toovin functionality
+**Primary Author**: Toovin (core application and most features)
+**Contributor**: Amphlux (additional features integrated)
+**Base Used**: Toovin's `dev5f` directory (main codebase)
+**Integration**: Added Amphlux's contributions while preserving Toovin's core functionality
 
 ## ✨ Features Successfully Merged
 
-### 🎲 From Amphlux's Version
-- **Dice Rolling System** (`dice.js`)
-  - Complete D&D dice set: d4, d6, d8, d10, d12, d20, d100
-  - Custom dice with any number of sides (2-1000)
-  - Modifiers and multiple dice rolls
-  - Beautiful modal interface with tabbed design
-  - Roll results sent to chat with formatted display
-
-- **LiveKit Voice Chat Integration** (`livekit_room_manager.py`)
-  - Real-time voice communication
-  - Room-based voice channels
-  - JWT token generation for secure connections
-  - WebRTC integration through LiveKit server
-
-- **Enhanced CSS Styling**
-  - Comprehensive dice modal styles
-  - Improved visual design elements
-  - Better user interface components
-
-### 🏰 From Toovin's Version (Retained)
 - **Adventure/RPG System** (`adventure.js`)
   - City management interface
   - Adventurer recruitment system
@@ -48,6 +30,13 @@ This document summarizes the successful merge of features from two FlaskLanChat 
   - HTTPS configuration support
   - Better cookie security settings
   - Enhanced authentication system
+
+- **Core Chat Functionality**
+  - Channel system and messaging
+  - File sharing and uploads
+  - Reaction system
+  - User authentication
+  - Database management
 
 - **Test Suite**
   - `test_carousel_fix.py`
@@ -68,6 +57,35 @@ This document summarizes the successful merge of features from two FlaskLanChat 
 - **Default Avatars**
   - Built-in avatar system with default images
   - User avatar management
+
+### 🎲 Additional Features by Amphlux (Contributor)
+- **Dice Rolling System** (`dice.js`)
+  - Complete D&D dice set: d4, d6, d8, d10, d12, d20, d100
+  - Custom dice with any number of sides (2-1000)
+  - Modifiers and multiple dice rolls
+  - Beautiful modal interface with tabbed design
+  - Roll results sent to chat with formatted display
+
+- **LiveKit Voice Chat Integration** (`livekit_room_manager.py`)
+  - Real-time voice communication
+  - Room-based voice channels
+  - JWT token generation for secure connections
+  - WebRTC integration through LiveKit server
+
+- **Theme Customization System**
+  - Multiple color themes
+  - User-selectable themes
+  - Custom CSS variables
+
+- **Poll System**
+  - Interactive voting functionality
+  - Real-time poll results
+  - Multiple choice options
+
+- **User Settings & Channel Management**
+  - Comprehensive user preferences
+  - Dynamic channel creation
+  - Channel management interface
 
 ## 🔧 Technical Implementation
 
