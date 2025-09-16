@@ -17,7 +17,7 @@ INSTALL DEPENDENCIES (Example list given from working environment, probably dont
 * chicken_pic.py extension calls out to a mediamtx service on a raspberry pi - flexible setup, functional if configured. Originally for chicken coop, but, do what you will for camera image on demand. 
 * eai_integration is a boilerplate extension for AI integration (conversation / vision chat LLM) - needs work, not currently functional. 
 * fun_commands.py extension was testing stuff, placeholders for what you might wanna adjust. 
-* user_profile.py extension, not functional, planned to add bio and some background info primarily for bot/ai interaction/personalization. 
+* User profiles by Amphlux -- thank you!! And Some other neat things!
 ##########
 
 
