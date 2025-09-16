@@ -1,4 +1,4 @@
-# FlaskLanChat - a mostly (Maybe -- im working on redoing this boilerplate) working lan chat with an extreme lack of secure features and operations. DONT USE IN SENSITIVE ENVIRONMENTS WITH OUT IMPLEMENTING HTTPS/CERTS. 
+# FlaskLanChat - a mostly (Maybe -- im working on redoing this boilerplate) working lan chat with an extreme lack of secure features and operations. DONT USE IN SENSITIVE ENVIRONMENTS WITH OUT IMPLEMENTING HTTPS/CERTS. Even then don't count on this being anything secure. Dev5f runs on https but error downloading medias from server exist, will upload an optional http/https (easily toggled on startup) version. HTTPS wont allow client downloads -- which, could even be a neat 'feature' (until its fixed)
 FlaskLanChat - Send/receive  group messages, share files, and some other extra AI goodies with some elbow grease. 
 
 
