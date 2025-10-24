@@ -1,4 +1,0 @@
-{
-    "rtsp_url": "rtsp://YOUR_CAMERA_IP:8554/cam",
-    "timeout_seconds": 10
-}
