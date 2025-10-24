@@ -1,4 +1,0 @@
-{
-    "rtsp_url": "rtsp://192.168.1.101:8554/cam",
-    "timeout_seconds": 10
-}
