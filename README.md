@@ -180,7 +180,7 @@ Extensions are loaded automatically from the `extensions/` directory. Each exten
 - **Connection Refused**: Check firewall and port 6969
 - **RTSP Connection Failed**: Verify camera IP configuration
 - **SD API Errors**: Check Stable Diffusion server configuration
-- **VoiceChat Not Working**: Ensure voice server is running on port 3000
+- **VoiceChat Not Working**: Ensure browser settings -- its been a pain with self hosted and browser securities. 
 - **Database Errors**: Check write permissions
 
 ### Network Setup
