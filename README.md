@@ -77,9 +77,8 @@ Configure these services with your network IPs before first run:
    - Default: `"http://127.0.0.1:1234/v1/chat/completions"` (localhost if running on same machine)
 
 4. **VoiceChat Server** (Settings → VoiceChat Configuration)
-   - `https://[VOICE_SERVER_IP]:3000`
-   - Configure in user settings after setup
-
+      - Configure in user settings after setup
+      - Access voice channels via left sidebar, click on the room name (such as DEFAULT) to open the viewer. Its not entirely intuitive yet. 
 ### SSL Certificates
 Generate self-signed certificates with your server IPs:
 ```bash
@@ -180,7 +179,7 @@ Extensions are loaded automatically from the `extensions/` directory. Each exten
 - **Connection Refused**: Check firewall and port 6969
 - **RTSP Connection Failed**: Verify camera IP configuration
 - **SD/FORGEUI API Errors**: Check Stable Diffusion server configuration 
-- **VoiceChat Not Working**: Ensure browser settings -- its been a pain with self hosted and browser securities. 
+- **VoiceChat Not Working**: Ensure browser settings -- its been a pain with self hosted and browser securities. Even with different subnet clients, the STUN serverr (RUN THE STUN SERVER PY SCRIPT!) should forward webtrc data. 
 - **Database Errors**: Check write permissions (meh)
 
 ### Network Setup
