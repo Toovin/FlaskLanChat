@@ -104,9 +104,9 @@ python generate_cert.py
 4. Use commands like `/roll 2d20`
 
 ### VoiceChat Setup
-1. Start separate Node.js voice server on port 3000
-2. Configure voice server URL in Settings → VoiceChat
-3. Join voice rooms for audio/video communication
+1. Its built in now, it shouldn't need another server
+2. The interface is funky, click around and find out
+3. ??? 
 
 ### Extensions
 - **Chicken Pic**: Camera feed capture (`!chicken`)
@@ -118,18 +118,18 @@ python generate_cert.py
 
 Select from built-in AI character personas for consistent AI interactions. The system features a streamlined card-based interface for easy character selection.
 
-#### Built-in Characters
+#### Built-in Characters -- Meh
 - **⭐ Helpful Assistant**: Friendly and helpful AI assistant
 - **⭐ Smart Assistant**: Intelligent and analytical problem solver
 - **⭐ Funny Buddy**: Witty and humorous conversation partner with sarcastic personality
 
-#### Character Selection Interface
+#### Character Selection Interface -- Buggy
 - **Visual Cards**: Browse characters in an intuitive card-based grid
 - **Quick Selection**: Click any character card to activate it instantly
 - **Visual Feedback**: Selected characters are highlighted with accent colors
 - **Built-in Distinction**: Built-in characters show a ⭐ star indicator
 
-#### Using Characters
+#### Using Characters -- Pretty buggy
 - **Active Character**: Select from character cards in AI settings
 - **@ai Mentions**: Channel mentions use your active character personality
 - **AI Chat Modal**: Respects your active character for consistent responses
@@ -176,17 +176,17 @@ Extensions are loaded automatically from the `extensions/` directory. Each exten
 ## 🐛 Troubleshooting
 
 ### Common Issues
-- **SSL Certificate Errors**: Regenerate with correct IPs
+- **SSL Certificate Errors**: Regenerate with correct IPs -- PROBABLY DONT START HERE IF TROUBLESHOOTING. ATTEMPT HTTP FIRST IF PROBLEMS. NEW CERT = NEW CERT FOR CLIENT BROWSERS = Pain!!
 - **Connection Refused**: Check firewall and port 6969
 - **RTSP Connection Failed**: Verify camera IP configuration
-- **SD API Errors**: Check Stable Diffusion server configuration
+- **SD/FORGEUI API Errors**: Check Stable Diffusion server configuration 
 - **VoiceChat Not Working**: Ensure browser settings -- its been a pain with self hosted and browser securities. 
-- **Database Errors**: Check write permissions
+- **Database Errors**: Check write permissions (meh)
 
 ### Network Setup
-- Ensure port 6969 is open in firewall
-- Use server LAN IP address (not localhost) for network access
-- All services must be accessible from client devices
+- Ensure port 6969 is open in firewall (Meh, likely not, unless your computer locks down everything that moves)
+- Use server LAN IP address (not localhost) for network access - ipconfig / ifconfig / ap address command 
+
 
 ## 🔄 Usage & Modification
 
@@ -201,7 +201,7 @@ This is a **personal boilerplate project** for testing, learning, and experiment
 
 ## 📄 License
 
-This project is open-source. See individual files for license information.
+This project is MIT open-source. See individual files for license information. Do whatever with it, just pass the vibe (perhaps pun intended) along with the original license.
 
 ---
 
