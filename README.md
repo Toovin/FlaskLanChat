@@ -1,5 +1,5 @@
 # FlaskLanChat - LAN Chat Application
-
+// 10-27-2025 : I see issues, fixed file share thing or two. Hold one while i get things set in stone to upload project as files instead of zip
 A grassroots, feature-rich LAN-only chat server developed solo in 3 months to address the lack of open-hood, customizable offline chat experiences. Approximately 70% bug-free, it serves as a boilerplate for AI experimentation and network-based communication (works with VPNs and large networks too!). Built with Flask, SocketIO, and SQLite, featuring AI chat, image generation, and voice/video capabilities.
 
 ## ✨ Features
